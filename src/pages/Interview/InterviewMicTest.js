@@ -280,7 +280,8 @@ const CameraSection = styled.div`
 const RightSection = styled.div`
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: 50%;
+  transform: translateY(50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -289,6 +290,7 @@ const RightSection = styled.div`
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
     position: relative;
     margin-top: ${({ theme }) => theme.spacing['2xl']};
+    transform: none;
   }
 `;
 
@@ -506,11 +508,14 @@ const BottomButtonWrapper = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    position: relative;
-    bottom: auto;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     right: auto;
-    margin-top: ${({ theme }) => theme.spacing['2xl']};
-    justify-content: center;
+    width: calc(100% - 40px);
+    max-width: 400px;
+    flex-direction: column;
   }
 `;
 
@@ -542,6 +547,12 @@ const ContinueButton = styled.button`
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
   min-width: 180px;
+  white-space: nowrap;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    width: 100%;
+    min-width: unset;
+  }
 
   &:hover {
     background-color: #7A69A7;
@@ -561,6 +572,12 @@ const ExitButton = styled.button`
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
   min-width: 180px;
+  white-space: nowrap;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    width: 100%;
+    min-width: unset;
+  }
 
   &:hover {
     background-color: #4B5563;
