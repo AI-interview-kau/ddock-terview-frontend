@@ -10,7 +10,9 @@ import Onboarding from './pages/Onboarding';
 import Main from './pages/Main';
 import InterviewPrepare from './pages/Interview/InterviewPrepare';
 import QuestionSelection from './pages/Interview/QuestionSelection';
-import InterviewSetting from './pages/Interview/InterviewSetting';
+import InterviewCameraTest from './pages/Interview/InterviewCameraTest';
+import InterviewMicTest from './pages/Interview/InterviewMicTest';
+import InterviewReady from './pages/Interview/InterviewReady';
 import InterviewProgress from './pages/Interview/InterviewProgress';
 import InterviewFeedback from './pages/Interview/InterviewFeedback';
 import QuestionDetailFeedback from './pages/Interview/QuestionDetailFeedback';
@@ -31,7 +33,9 @@ function App() {
           {/* Interview Routes */}
           <Route path="/interview" element={<InterviewPrepare />} />
           <Route path="/interview/question-selection" element={<QuestionSelection />} />
-          <Route path="/interview/setting" element={<InterviewSetting />} />
+          <Route path="/interview/camera-test" element={<InterviewCameraTest />} />
+          <Route path="/interview/mic-test" element={<InterviewMicTest />} />
+          <Route path="/interview/ready" element={<InterviewReady />} />
           <Route path="/interview/progress" element={<InterviewProgress />} />
           <Route path="/interview/feedback" element={<InterviewFeedback />} />
           <Route path="/interview/feedback/:questionId" element={<QuestionDetailFeedback />} />

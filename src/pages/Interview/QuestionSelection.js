@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
+import iconInterview from '../../assets/icons/icon_interview.png';
+import ddocks2 from '../../assets/icons/ddocks2.png';
 
 const QUESTIONS = {
   personality: [
@@ -32,6 +34,17 @@ const QuestionSelection = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('personality');
   const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [assignmentStage, setAssignmentStage] = useState(0); // 0: 없음, 1: 면접관 배정 중, 2: 준비 완료
+
+  useEffect(() => {
+    // 면접관 배정 중 -> 준비 완료로 전환
+    if (assignmentStage === 1) {
+      const timer = setTimeout(() => {
+        setAssignmentStage(2);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [assignmentStage]);
 
   const toggleQuestionSelection = (question) => {
     if (selectedQuestions.includes(question)) {
@@ -46,8 +59,16 @@ const QuestionSelection = () => {
       alert('최소 1개 이상의 질문을 선택해주세요.');
       return;
     }
-    // TODO: 선택한 질문들을 저장소에 저장하거나 면접 설정 페이지로 전달
-    navigate('/interview/setting');
+    // TODO: 선택한 질문들을 저장소에 저장
+    setAssignmentStage(1);
+  };
+
+  const handleStartInterviewProgress = () => {
+    navigate('/interview/camera-test');
+  };
+
+  const handleCloseAssignment = () => {
+    setAssignmentStage(0);
   };
 
   const getCategoryQuestions = () => {
@@ -68,25 +89,25 @@ const QuestionSelection = () => {
 
             <CategoryList>
               <CategoryItem
-                active={activeCategory === 'personality'}
+                $active={activeCategory === 'personality'}
                 onClick={() => setActiveCategory('personality')}
               >
                 인성 면접
               </CategoryItem>
               <CategoryItem
-                active={activeCategory === 'technical'}
+                $active={activeCategory === 'technical'}
                 onClick={() => setActiveCategory('technical')}
               >
                 기술 면접
               </CategoryItem>
               <CategoryItem
-                active={activeCategory === 'custom'}
+                $active={activeCategory === 'custom'}
                 onClick={() => setActiveCategory('custom')}
               >
                 내가 만든 질문
               </CategoryItem>
               <CategoryItem
-                active={activeCategory === 'saved'}
+                $active={activeCategory === 'saved'}
                 onClick={() => setActiveCategory('saved')}
               >
                 찜한 질문
@@ -144,6 +165,49 @@ const QuestionSelection = () => {
             </BottomBar>
           </Content>
         </ContentCard>
+
+        {/* 면접관 배정 모달 */}
+        {assignmentStage > 0 && (
+          <Modal>
+            <ModalOverlay />
+            <AssignmentModalContent>
+              <CloseButton onClick={handleCloseAssignment}>✕</CloseButton>
+
+              {assignmentStage === 1 ? (
+                <>
+                  <ModalTitle>어떤 면접관을 만날지 랜덤으로 배정 중이에요!</ModalTitle>
+                  <LoadingIcon>
+                    <img src={ddocks2} alt="Interview Icon" />
+                  </LoadingIcon>
+                </>
+              ) : (
+                <>
+                  <ModalTitle>면접 준비 완료!</ModalTitle>
+                  <AssignmentInfoSection>
+                    <AssignmentInfoText>
+                      지원자의 논리적 허점과 대처 능력을 날카롭게 파고드는 압박 면접관이 배정되었어요.
+                    </AssignmentInfoText>
+                    <AssignmentInfoHighlight>
+                      총 <Strong>{selectedQuestions.length}개</Strong>의 질문으로 면접 연습을 시작합니다.
+                    </AssignmentInfoHighlight>
+                    <AssignmentInfoText>
+                      면접 연습은 약 <Strong>20~30분</Strong> 정도 소요될 예정이에요.
+                    </AssignmentInfoText>
+                    <AssignmentInfoText>이 면접의 끝에서, 당신은 한 단계 더 성장해 있을 겁니다 !</AssignmentInfoText>
+                  </AssignmentInfoSection>
+
+                  <AssignmentCharacterSmall>
+                    <img src={ddocks2} alt="Interview Character" />
+                  </AssignmentCharacterSmall>
+
+                  <AssignmentStartButton onClick={handleStartInterviewProgress}>
+                    면접 연습 시작
+                  </AssignmentStartButton>
+                </>
+              )}
+            </AssignmentModalContent>
+          </Modal>
+        )}
       </Container>
     </Layout>
   );
@@ -197,8 +261,8 @@ const CategoryList = styled.div`
 
 const CategoryItem = styled.button`
   padding: ${({ theme }) => theme.spacing.lg};
-  background-color: ${({ active }) =>
-    active ? '#4A4160' : 'transparent'};
+  background-color: ${({ $active }) =>
+    $active ? '#4A4160' : 'transparent'};
   color: white;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   font-size: ${({ theme }) => theme.fonts.size.lg};
@@ -208,8 +272,8 @@ const CategoryItem = styled.button`
   transition: all ${({ theme }) => theme.transitions.fast};
 
   &:hover {
-    background-color: ${({ active }) =>
-      active ? '#4A4160' : 'rgba(255, 255, 255, 0.1)'};
+    background-color: ${({ $active }) =>
+      $active ? '#4A4160' : 'rgba(255, 255, 255, 0.1)'};
   }
 `;
 
@@ -311,6 +375,151 @@ const StartButton = styled(Button)`
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.primaryDark};
+  }
+`;
+
+// Modal styles
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: ${({ theme }) => theme.zIndex.modal};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+`;
+
+const bounce = keyframes`
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+`;
+
+const LoadingIcon = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size['5xl']};
+  margin: ${({ theme }) => theme.spacing.xl} 0;
+  animation: ${bounce} 1.5s infinite;
+
+  img {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+  }
+`;
+
+const ModalTitle = styled.h3`
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  color: ${({ theme }) => theme.colors.text.dark};
+  text-align: center;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+`;
+
+const AssignmentModalContent = styled.div`
+  position: relative;
+  background-color: white;
+  border-radius: ${({ theme }) => theme.borderRadius['2xl']};
+  padding: ${({ theme }) => theme.spacing['4xl']};
+  max-width: 900px;
+  width: 90%;
+  min-height: 550px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.xl};
+  box-shadow: ${({ theme }) => theme.shadows.xl};
+  z-index: 2;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: ${({ theme }) => theme.spacing.xl};
+  left: ${({ theme }) => theme.spacing.xl};
+  background: none;
+  border: none;
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
+  color: ${({ theme }) => theme.colors.text.dark};
+  cursor: pointer;
+  padding: ${({ theme }) => theme.spacing.sm};
+  line-height: 1;
+  transition: all ${({ theme }) => theme.transitions.fast};
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.gray[600]};
+  }
+`;
+
+const AssignmentInfoSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+  text-align: center;
+  max-width: 600px;
+`;
+
+const AssignmentInfoText = styled.p`
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  color: ${({ theme }) => theme.colors.text.dark};
+  line-height: 1.6;
+`;
+
+const AssignmentInfoHighlight = styled.p`
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  color: ${({ theme }) => theme.colors.text.dark};
+  line-height: 1.6;
+  margin: ${({ theme }) => theme.spacing.sm} 0;
+`;
+
+const Strong = styled.span`
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  color: #9B8FF5;
+`;
+
+const AssignmentCharacterSmall = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: ${({ theme }) => theme.spacing.lg} 0;
+
+  img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+  }
+`;
+
+const AssignmentStartButton = styled.button`
+  background-color: #9B8FF5;
+  color: white;
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing['3xl']};
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  border: none;
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
+  min-width: 250px;
+  margin-top: ${({ theme }) => theme.spacing.lg};
+
+  &:hover {
+    background-color: #8B7FE5;
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.md};
   }
 `;
 

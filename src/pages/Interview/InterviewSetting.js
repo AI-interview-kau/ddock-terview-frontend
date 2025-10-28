@@ -105,7 +105,7 @@ const InterviewSetting = () => {
               <CardTitle>면접관 유형 선택</CardTitle>
               <InterviewerOptions>
                 <InterviewerOption
-                  active={settings.interviewerType === 'ai'}
+                  $active={settings.interviewerType === 'ai'}
                   onClick={() =>
                     setSettings({ ...settings, interviewerType: 'ai' })
                   }
@@ -115,7 +115,7 @@ const InterviewSetting = () => {
                 </InterviewerOption>
 
                 <InterviewerOption
-                  active={settings.interviewerType === 'ddox'}
+                  $active={settings.interviewerType === 'ddox'}
                   onClick={() =>
                     setSettings({ ...settings, interviewerType: 'ddox' })
                   }
@@ -127,7 +127,7 @@ const InterviewSetting = () => {
                 </InterviewerOption>
 
                 <InterviewerOption
-                  active={settings.interviewerType === 'alone'}
+                  $active={settings.interviewerType === 'alone'}
                   onClick={() =>
                     setSettings({ ...settings, interviewerType: 'alone' })
                   }
@@ -363,8 +363,8 @@ const InterviewerOption = styled.button.attrs({ className: 'interviewer-option' 
   justify-content: center;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
-  background-color: ${({ active }) => (active ? '#E8E0FF' : 'white')};
-  border: 2px solid ${({ active }) => (active ? '#9B8FF5' : '#E0E0E0')};
+  background-color: ${({ $active }) => ($active ? '#E8E0FF' : 'white')};
+  border: 2px solid ${({ $active }) => ($active ? '#9B8FF5' : '#E0E0E0')};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};

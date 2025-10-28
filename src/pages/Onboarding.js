@@ -110,21 +110,21 @@ const Onboarding = () => {
               <StatusGroup>
                 <StatusButton
                   type="button"
-                  active={formData.currentStatus === '실무자'}
+                  $active={formData.currentStatus === '실무자'}
                   onClick={() => handleStatusClick('실무자')}
                 >
                   실무자
                 </StatusButton>
                 <StatusButton
                   type="button"
-                  active={formData.currentStatus === '학생'}
+                  $active={formData.currentStatus === '학생'}
                   onClick={() => handleStatusClick('학생')}
                 >
                   학생
                 </StatusButton>
                 <StatusButton
                   type="button"
-                  active={formData.currentStatus === '무직'}
+                  $active={formData.currentStatus === '무직'}
                   onClick={() => handleStatusClick('무직')}
                 >
                   무직
@@ -320,12 +320,12 @@ const StatusGroup = styled.div`
 const StatusButton = styled.button`
   flex: 1;
   padding: ${({ theme }) => theme.spacing.md};
-  background-color: ${({ active, theme }) =>
-    active ? theme.colors.primary : 'white'};
-  color: ${({ active, theme }) =>
-    active ? 'white' : theme.colors.text.dark};
-  border: 2px solid ${({ active, theme }) =>
-    active ? theme.colors.primary : theme.colors.border};
+  background-color: ${({ $active, theme }) =>
+    $active ? theme.colors.primary : 'white'};
+  color: ${({ $active, theme }) =>
+    $active ? 'white' : theme.colors.text.dark};
+  border: 2px solid ${({ $active, theme }) =>
+    $active ? theme.colors.primary : theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: ${({ theme }) => theme.fonts.size.base};
   font-weight: ${({ theme }) => theme.fonts.weight.medium};

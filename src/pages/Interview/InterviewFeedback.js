@@ -9,7 +9,6 @@ const MOCK_QUESTIONS = [
   '보안 취약점에 대해 알고 있는 것과 그 대응 방법은 무엇인가요?',
   '코드 리뷰의 중요성에 대해 이야기해 주세요.',
   '본인이 최선을 다해 성취한 경험에 대해서 이야기해 주세요.',
-  '그게 정말 최선이었나요?',
   '보안 취약점에 대해 알고 있는 것과 그 대응 방법은 무엇인가요?',
 ];
 
@@ -45,8 +44,6 @@ const InterviewFeedback = () => {
             <FeedbackText>
               전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와 자료스러운 태도를
               보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
-              <br />
-              <br />
               다음에는 답변 시간을 적절히 조절하여 더욱 실감을 살린 모의 면접을
               시도해 보세요!
             </FeedbackText>
@@ -90,10 +87,12 @@ const InterviewFeedback = () => {
 
           <QuestionContainer>
             <QuestionDescription>
-              "반곡 진행한 면접의 전체 질문 목록이에요"
+              방금 진행한 면접의 전체 질문 목록이에요.
               <br />
               답변이 아쉬웠거나 다시 연습하고 싶은 중요한 질문이 있다면, 하트를
-              눌러 질문 저장소에 저장해 보세요."
+              눌러 질문 저장소에 저장해 보세요!
+              <br />
+              질문을 클릭하면 해당 질문의 피드백을 확인해볼 수 있어요.
             </QuestionDescription>
 
             <QuestionList>
@@ -101,14 +100,13 @@ const InterviewFeedback = () => {
                 <QuestionCard
                   key={index}
                   onClick={() => handleQuestionClick(index)}
-                  active={index === 4}
                 >
                   <HeartButton
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleSaveQuestion(index);
                     }}
-                    saved={savedQuestions.includes(index)}
+                    $saved={savedQuestions.includes(index)}
                   >
                     <FiHeart />
                   </HeartButton>
@@ -154,7 +152,7 @@ const FeedbackCard = styled.div`
 `;
 
 const ScoreBox = styled.div`
-  background-color: ${({ theme }) => theme.colors.primary};
+  background: linear-gradient(135deg, #8973FF 0%, #7BA3FF 100%);
   padding: ${({ theme }) => theme.spacing.lg};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
@@ -176,7 +174,8 @@ const Score = styled.span`
 `;
 
 const FeedbackText = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: ${({ theme }) => theme.colors.text.dark};
   line-height: 1.8;
   margin-bottom: ${({ theme }) => theme.spacing.xl};
@@ -242,11 +241,11 @@ const QuestionList = styled.div`
 `;
 
 const QuestionCard = styled.div`
-  background-color: ${({ active, theme }) =>
-    active ? 'rgba(124, 111, 238, 0.1)' : 'white'};
+  background-color: ${({ $active, theme }) =>
+    $active ? 'rgba(124, 111, 238, 0.1)' : 'white'};
   border: 1px solid
-    ${({ active, theme }) =>
-      active ? theme.colors.primary : theme.colors.gray[300]};
+    ${({ $active, theme }) =>
+      $active ? theme.colors.primary : theme.colors.gray[300]};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
   display: flex;
@@ -265,13 +264,13 @@ const QuestionCard = styled.div`
 `;
 
 const HeartButton = styled.button`
-  color: ${({ saved, theme }) =>
-    saved ? theme.colors.error : theme.colors.gray[400]};
+  color: ${({ $saved, theme }) =>
+    $saved ? theme.colors.error : theme.colors.gray[400]};
   font-size: ${({ theme }) => theme.fonts.size.xl};
   transition: all ${({ theme }) => theme.transitions.fast};
 
   svg {
-    fill: ${({ saved }) => (saved ? 'currentColor' : 'none')};
+    fill: ${({ $saved }) => ($saved ? 'currentColor' : 'none')};
   }
 
   &:hover {

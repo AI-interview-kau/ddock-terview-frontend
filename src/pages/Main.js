@@ -24,8 +24,9 @@ import yellowBalloon from '../assets/icons/yellow_balloon.png';
 import circleIcon from '../assets/icons/circle.png';
 import chainLink from '../assets/icons/chain-link.png';
 import donutIcon from '../assets/icons/donut.png';
-import checkboxIcon from '../assets/icons/Checkbox.png';
-import rectangleIcon from '../assets/icons/Rectangle.png';
+import signUpIcon from '../assets/icons/sign up.png';
+import loginIcon from '../assets/icons/login.png';
+import ticketIcon from '../assets/icons/ticket.png';
 
 const Main = () => {
   const navigate = useNavigate();
@@ -99,16 +100,7 @@ const Main = () => {
             </FeatureTitle>
           </FeatureCard>
 
-          <FeatureGrid style={{ transform: 'translateX(-150px)' }}>
-            <FeatureItem>
-              <FeatureTag>면접 시작 전</FeatureTag>
-              <FeatureLabel>내 마음대로 꾸미는 면접연습</FeatureLabel>
-              <FeatureText>
-                조금은 친숙한 코드블록으로<br />
-                우리에게 알맞은 면접을 커스텀할 수 있습니다.
-              </FeatureText>
-              <FeatureImage src={card2} alt="Feature illustration" />
-            </FeatureItem>
+          <FeatureGrid>
             <FeatureItem>
               <FeatureTag>면접 과정 이후</FeatureTag>
               <FeatureLabel>내가 연습한 영상 확인 가능</FeatureLabel>
@@ -119,17 +111,6 @@ const Main = () => {
               </FeatureText>
               <FeatureImage src={card2} alt="Feature illustration" />
             </FeatureItem>
-          </FeatureGrid>
-        </SectionPart1>
-
-        {/* Part 2: Oval/Ellipse overlay */}
-        <SectionPart2>
-          <Star style={{ top: '10%', left: '15%' }} src={starIcon} alt="" />
-          <Star style={{ top: '15%', right: '20%' }} src={starIcon} alt="" />
-          <Star style={{ bottom: '30%', left: '12%' }} src={starIcon} alt="" />
-          <Star style={{ bottom: '25%', right: '15%' }} src={starIcon} alt="" />
-
-          <FeatureGrid style={{ transform: 'translateX(150px)' }}>
             <FeatureItem>
               <FeatureTag>면접 도중 및 마무리</FeatureTag>
               <FeatureLabel>지속적인 피드백 제공</FeatureLabel>
@@ -153,6 +134,27 @@ const Main = () => {
               </CharacterGroup>
             </FeatureItem>
           </FeatureGrid>
+        </SectionPart1>
+
+        {/* Part 2: Oval/Ellipse overlay */}
+        <SectionPart2>
+          <Star style={{ top: '10%', left: '15%' }} src={starIcon} alt="" />
+          <Star style={{ top: '15%', right: '20%' }} src={starIcon} alt="" />
+          <Star style={{ bottom: '30%', left: '12%' }} src={starIcon} alt="" />
+          <Star style={{ bottom: '25%', right: '15%' }} src={starIcon} alt="" />
+          <Star style={{ top: '25%', left: '8%' }} src={starIcon} alt="" />
+          <Star style={{ top: '50%', right: '10%' }} src={starIcon} alt="" />
+          <Star style={{ bottom: '40%', left: '18%' }} src={starIcon} alt="" />
+          <Star style={{ top: '40%', right: '25%' }} src={starIcon} alt="" />
+
+          <DecorativeObject style={{ top: '8%', left: '5%', width: '70px' }} src={cubeIcon} alt="" />
+          <DecorativeObject style={{ top: '20%', right: '8%', width: '80px' }} src={cylinderIcon} alt="" />
+          <DecorativeObject style={{ bottom: '15%', left: '10%', width: '90px' }} src={donutIcon} alt="" />
+          <DecorativeObject style={{ top: '35%', left: '3%', width: '60px', opacity: 0.7 }} src={circleIcon} alt="" />
+          <DecorativeObject style={{ bottom: '35%', right: '5%', width: '75px' }} src={chainLink} alt="" />
+          <DecorativeObject style={{ top: '60%', right: '15%', width: '65px', opacity: 0.6 }} src={circleIcon} alt="" />
+          <DecorativeObject style={{ bottom: '50%', left: '20%', width: '70px' }} src={cubeIcon} alt="" />
+          <DecorativeObject style={{ top: '70%', left: '8%', width: '55px' }} src={cylinderIcon} alt="" />
 
           <DdocksCharacter src={ddocksIcon} alt="Ddocks character" />
         </SectionPart2>
@@ -169,15 +171,15 @@ const Main = () => {
 
         <PlanCards>
           <PlanCard>
-            <PlanIcon src={checkboxIcon} alt="Checkbox" />
+            <PlanIcon src={signUpIcon} alt="Sign Up" />
             <PlanTitle>회원가입 하러가기</PlanTitle>
           </PlanCard>
           <PlanCard>
-            <PlanIcon src={cloudIcon} alt="Cloud" />
+            <PlanIcon src={loginIcon} alt="Login" />
             <PlanTitle>로그인 하러가기</PlanTitle>
           </PlanCard>
           <PlanCard>
-            <PlanIcon src={rectangleIcon} alt="Rectangle" />
+            <PlanIcon src={ticketIcon} alt="Ticket" />
             <PlanTitle>이용권 보러가기</PlanTitle>
           </PlanCard>
         </PlanCards>
@@ -308,15 +310,16 @@ const DecorativeObject = styled.img.attrs({ className: 'decorative-object' })`
 `;
 
 const FeatureGrid = styled.div.attrs({ className: 'feature-grid' })`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  justify-content: center;
   gap: ${({ theme }) => theme.spacing.xl};
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   position: relative;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: center;
   }
 `;
 
@@ -353,8 +356,8 @@ const SectionPart2 = styled.div.attrs({ className: 'section-part-2' })`
 `;
 
 const DdocksCharacter = styled.img.attrs({ className: 'ddocks-character' })`
-  width: 120px;
-  height: 120px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
   position: absolute;
   bottom: 80px;
@@ -546,14 +549,14 @@ const PlanCard = styled.div.attrs({ className: 'plan-card' })`
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  gap: ${({ theme }) => theme.spacing.xl};
 `;
 
 const PlanIcon = styled.img.attrs({ className: 'plan-icon' })`
-  width: 150px;
-  height: 150px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
-  margin-top: ${({ theme }) => theme.spacing.md};
 `;
 
 const PlanTitle = styled.h3.attrs({ className: 'plan-title' })`

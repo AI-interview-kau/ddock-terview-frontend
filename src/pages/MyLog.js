@@ -53,14 +53,13 @@ const MyLog = () => {
       <Container>
         {/* 나의 성장 리포트 */}
         <Section>
-          <SectionHeader>
-            <SectionTitle>나의 성장 리포트</SectionTitle>
+          <SectionTitleBar>나의 성장 리포트</SectionTitleBar>
+          <ContentWrapper>
             <SectionSubtitle>
               꾸준한 연습으로 성장하는 나를 확인해 보세요!
             </SectionSubtitle>
-          </SectionHeader>
 
-          <ChartContainer>
+            <ChartContainer>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={GROWTH_DATA}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
@@ -76,20 +75,20 @@ const MyLog = () => {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </ChartContainer>
+            </ChartContainer>
+          </ContentWrapper>
         </Section>
 
         {/* 3차 면접 역량 분석 */}
         <Section>
-          <SectionHeader>
-            <SectionTitle>3차 면접 역량</SectionTitle>
+          <SectionTitleBar>3차 면접 역량</SectionTitleBar>
+          <ContentWrapper>
             <SectionInfo>(2025.04.23) | 3차 면접</SectionInfo>
             <ImprovementBadge>
               2차 대비 자신감이 30% 증가했어요!
             </ImprovementBadge>
-          </SectionHeader>
 
-          <FeedbackText>
+            <FeedbackText>
             면접 전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와
             자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
           </FeedbackText>
@@ -129,25 +128,26 @@ const MyLog = () => {
               </ResponsiveContainer>
             </RadarChartWrapper>
           </RadarChartsContainer>
+          </ContentWrapper>
         </Section>
 
         {/* 나의 면접 기록 */}
         <Section>
-          <SectionHeader>
-            <SectionTitle>나의 면접 기록</SectionTitle>
+          <SectionTitleBar>나의 면접 기록</SectionTitleBar>
+          <ContentWrapper>
             <SectionSubtitle>
               과거의 면접 기록을 확인해 보세요!
             </SectionSubtitle>
-          </SectionHeader>
 
-          <HistoryList>
+            <HistoryList>
             {INTERVIEW_HISTORY.map((item, index) => (
               <HistoryItem key={index}>
                 <HistoryDate>{item.date}</HistoryDate>
                 <HistoryScore>{item.score}점</HistoryScore>
               </HistoryItem>
             ))}
-          </HistoryList>
+            </HistoryList>
+          </ContentWrapper>
         </Section>
       </Container>
     </Layout>
@@ -166,25 +166,33 @@ const Section = styled.section`
   margin-bottom: ${({ theme }) => theme.spacing['4xl']};
 `;
 
-const SectionHeader = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-`;
-
-const SectionTitle = styled.h2`
+const SectionTitleBar = styled.h2`
   font-size: ${({ theme }) => theme.fonts.size['3xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
+  color: white;
+  background-color: #2C2539;
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  border-top-left-radius: ${({ theme }) => theme.borderRadius.md};
+  border-top-right-radius: ${({ theme }) => theme.borderRadius.md};
+`;
+
+const ContentWrapper = styled.div`
+  background-color: white;
+  border-bottom-left-radius: ${({ theme }) => theme.borderRadius.xl};
+  border-bottom-right-radius: ${({ theme }) => theme.borderRadius.xl};
+  padding: ${({ theme }) => theme.spacing['3xl']};
+  box-shadow: ${({ theme }) => theme.shadows.md};
 `;
 
 const SectionSubtitle = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.base};
-  color: ${({ theme }) => theme.colors.text.secondary};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  color: ${({ theme }) => theme.colors.text.dark};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
 const SectionInfo = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.base};
-  color: ${({ theme }) => theme.colors.text.secondary};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  color: ${({ theme }) => theme.colors.text.dark};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
 `;
 
@@ -199,15 +207,13 @@ const ImprovementBadge = styled.div`
 `;
 
 const ChartContainer = styled.div`
-  background-color: white;
   border-radius: ${({ theme }) => theme.borderRadius.xl};
   padding: ${({ theme }) => theme.spacing.xl};
-  box-shadow: ${({ theme }) => theme.shadows.md};
 `;
 
 const FeedbackText = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.base};
-  color: ${({ theme }) => theme.colors.text.secondary};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  color: ${({ theme }) => theme.colors.text.dark};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
   line-height: 1.6;
 `;
@@ -223,10 +229,10 @@ const RadarChartsContainer = styled.div`
 `;
 
 const RadarChartWrapper = styled.div`
-  background-color: white;
   border-radius: ${({ theme }) => theme.borderRadius.xl};
   padding: ${({ theme }) => theme.spacing.xl};
-  box-shadow: ${({ theme }) => theme.shadows.md};
+  background-color: ${({ theme }) => theme.colors.gray[50]};
+  border: 1px solid ${({ theme }) => theme.colors.gray[200]};
 `;
 
 const RadarChartTitle = styled.h3`
@@ -241,27 +247,29 @@ const HistoryList = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.xl};
 `;
 
 const HistoryItem = styled.div`
-  background-color: white;
+  background-color: ${({ theme }) => theme.colors.gray[50]};
+  border: 1px solid ${({ theme }) => theme.colors.gray[200]};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: ${({ theme }) => theme.shadows.sm};
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
 
   &:hover {
     transform: translateX(4px);
-    box-shadow: ${({ theme }) => theme.shadows.md};
+    background-color: ${({ theme }) => theme.colors.gray[100]};
+    border-color: ${({ theme }) => theme.colors.primary};
   }
 `;
 
 const HistoryDate = styled.span`
-  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
   color: ${({ theme }) => theme.colors.text.dark};
 `;
 
@@ -269,9 +277,9 @@ const HistoryScore = styled.span`
   font-size: ${({ theme }) => theme.fonts.size.xl};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: white;
-  background-color: ${({ theme }) => theme.colors.primary};
+  background: linear-gradient(135deg, #8973FF 0%, #7BA3FF 100%);
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg};
-  border-radius: ${({ theme }) => theme.borderRadius.full};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
 `;
 
 export default MyLog;

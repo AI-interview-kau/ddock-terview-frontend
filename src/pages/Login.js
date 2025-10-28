@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import SimpleHeader from '../components/common/SimpleHeader';
+import Header from '../components/common/Header';
 import Button from '../components/common/Button';
+import logo from '../assets/icons/logo.png';
+import ddockTerview from '../assets/icons/ddock-terview.png';
+import kakaoIcon from '../assets/icons/kakao.png';
+import googleIcon from '../assets/icons/google.png';
+import appleIcon from '../assets/icons/apple.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -33,12 +38,12 @@ const Login = () => {
 
   return (
     <Container>
-      <SimpleHeader />
+      <Header isLoggedIn={false} />
 
         <LoginBox>
           <LogoSection>
-            <LogoIcon>😊</LogoIcon>
-            <LogoText>똑터뷰</LogoText>
+            <LogoImage src={logo} alt="똑터뷰 로고" />
+            <DdockTerviewIcon src={ddockTerview} alt="똑터뷰 아이콘" />
           </LogoSection>
 
           <Form onSubmit={handleSubmit}>
@@ -68,14 +73,13 @@ const Login = () => {
             <SocialLoginText>소셜계정으로 로그인</SocialLoginText>
             <SocialButtonGroup>
               <SocialButton onClick={() => handleSocialLogin('kakao')}>
-                <SocialIcon bgColor="#FEE500">K</SocialIcon>
+                <SocialIconImage src={kakaoIcon} alt="카카오 로그인" />
               </SocialButton>
               <SocialButton onClick={() => handleSocialLogin('google')}>
-                <SocialIcon bgColor="#FFFFFF">G</SocialIcon>
+                <SocialIconImage $large src={googleIcon} alt="구글 로그인" />
               </SocialButton>
               <SocialButton onClick={() => handleSocialLogin('apple')}>
-                <SocialIcon bgColor="#000000">
-                </SocialIcon>
+                <SocialIconImage $large src={appleIcon} alt="애플 로그인" />
               </SocialButton>
             </SocialButtonGroup>
           </SocialLoginSection>
@@ -91,7 +95,6 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: ${({ theme }) => theme.spacing.xl};
 `;
 
 const LoginBox = styled.div`
@@ -113,21 +116,16 @@ const LogoSection = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing['2xl']};
 `;
 
-const LogoIcon = styled.div`
-  width: 120px;
-  height: 120px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  border-radius: ${({ theme }) => theme.borderRadius.full};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${({ theme }) => theme.fonts.size['5xl']};
+const LogoImage = styled.img`
+  width: 150px;
+  height: auto;
+  object-fit: contain;
 `;
 
-const LogoText = styled.h1`
-  font-size: ${({ theme }) => theme.fonts.size['4xl']};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ theme }) => theme.colors.text.primary};
+const DdockTerviewIcon = styled.img`
+  width: 120px;
+  height: auto;
+  object-fit: contain;
 `;
 
 const Form = styled.form`
@@ -195,24 +193,25 @@ const SocialButton = styled.button`
   border: none;
   cursor: pointer;
   transition: transform ${({ theme }) => theme.transitions.fast};
+  padding: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  box-shadow: ${({ theme }) => theme.shadows.md};
 
   &:hover {
     transform: scale(1.1);
   }
 `;
 
-const SocialIcon = styled.div`
-  width: 56px;
-  height: 56px;
-  border-radius: ${({ theme }) => theme.borderRadius.full};
-  background-color: ${({ bgColor }) => bgColor};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${({ theme }) => theme.fonts.size['2xl']};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ bgColor }) => (bgColor === '#FFFFFF' ? '#000' : bgColor === '#FEE500' ? '#000' : '#fff')};
-  box-shadow: ${({ theme }) => theme.shadows.md};
+const SocialIconImage = styled.img`
+  width: ${({ $large }) => ($large ? '140%' : '100%')};
+  height: ${({ $large }) => ($large ? '140%' : '100%')};
+  object-fit: cover;
 `;
 
 export default Login;

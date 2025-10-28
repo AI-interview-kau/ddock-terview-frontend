@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import Layout from '../components/common/Layout';
 import Button from '../components/common/Button';
+import ticketIcon from '../assets/icons/이용권.png';
 
 const PLANS = [
   {
@@ -67,28 +68,29 @@ const Subscription = () => {
         <PlansGrid>
           {PLANS.map((plan, index) => (
             <PlanCard key={index}>
-              <PlanHeader>
-                <PlanName>{plan.name}</PlanName>
-                <PlanDuration>유효기간: {plan.duration}</PlanDuration>
-              </PlanHeader>
+              <PlanContent>
+                <PlanLeft>
+                  <PlanName>{plan.name}</PlanName>
+                  <PlanDuration>유효기간: {plan.duration}</PlanDuration>
 
-              <Features>
-                {plan.features.map((feature, idx) => (
-                  <Feature key={idx}>
-                    <FeatureIcon>✅</FeatureIcon>
-                    <FeatureText>{feature}</FeatureText>
-                  </Feature>
-                ))}
-              </Features>
+                  <Features>
+                    {plan.features.map((feature, idx) => (
+                      <Feature key={idx}>
+                        <FeatureIcon>✓</FeatureIcon>
+                        <FeatureText>{feature}</FeatureText>
+                      </Feature>
+                    ))}
+                  </Features>
+                </PlanLeft>
 
-              <PriceSection>
-                <CharacterIcon>🤖</CharacterIcon>
-                <PriceInfo>
-                  <OriginalPrice>{plan.originalPrice}</OriginalPrice>
-                  <Price>{plan.price}</Price>
-                  <Discount>할인 중</Discount>
-                </PriceInfo>
-              </PriceSection>
+                <PlanRight>
+                  <PriceInfo>
+                    <OriginalPrice>{plan.originalPrice}</OriginalPrice>
+                    <Price>{plan.price}</Price>
+                    <Discount>할인 중!</Discount>
+                  </PriceInfo>
+                </PlanRight>
+              </PlanContent>
             </PlanCard>
           ))}
         </PlansGrid>
@@ -193,8 +195,8 @@ const LoginButton = styled(Button)`
 `;
 
 const PlansGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: ${({ theme }) => theme.spacing.xl};
   max-width: 1400px;
   margin: ${({ theme }) => theme.spacing['4xl']} auto;
@@ -202,21 +204,31 @@ const PlansGrid = styled.div`
 `;
 
 const PlanCard = styled.div`
-  background-color: white;
-  border-radius: ${({ theme }) => theme.borderRadius.xl};
-  padding: ${({ theme }) => theme.spacing['2xl']};
-  box-shadow: ${({ theme }) => theme.shadows.lg};
-  border: 3px dashed ${({ theme }) => theme.colors.primary};
+  background: url(${ticketIcon}) center/contain no-repeat;
+  background-size: 100% 100%;
+  padding: ${({ theme }) => theme.spacing.xl} ${({ theme }) => theme.spacing['2xl']};
   transition: all ${({ theme }) => theme.transitions.fast};
+  position: relative;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
 
   &:hover {
     transform: translateY(-8px);
-    box-shadow: ${({ theme }) => theme.shadows.xl};
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
   }
 `;
 
-const PlanHeader = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+const PlanContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: ${({ theme }) => theme.spacing.xl};
+`;
+
+const PlanLeft = styled.div`
+  flex: 1;
 `;
 
 const PlanName = styled.h3`
@@ -235,7 +247,7 @@ const Features = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.md};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  margin-top: ${({ theme }) => theme.spacing.xl};
 `;
 
 const Feature = styled.div`
@@ -246,6 +258,8 @@ const Feature = styled.div`
 
 const FeatureIcon = styled.span`
   flex-shrink: 0;
+  color: ${({ theme }) => theme.colors.primary};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
 `;
 
 const FeatureText = styled.p`
@@ -254,37 +268,37 @@ const FeatureText = styled.p`
   line-height: 1.5;
 `;
 
-const PriceSection = styled.div`
+const PlanRight = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding-top: ${({ theme }) => theme.spacing.lg};
-  border-top: 1px solid ${({ theme }) => theme.colors.gray[200]};
+  gap: ${({ theme }) => theme.spacing.lg};
+  border-left: 2px dashed ${({ theme }) => theme.colors.gray[300]};
+  padding-left: ${({ theme }) => theme.spacing.xl};
 `;
 
-const CharacterIcon = styled.div`
-  font-size: ${({ theme }) => theme.fonts.size['4xl']};
-`;
 
 const PriceInfo = styled.div`
-  text-align: right;
+  text-align: center;
 `;
 
 const OriginalPrice = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.sm};
+  font-size: ${({ theme }) => theme.fonts.size.base};
   color: ${({ theme }) => theme.colors.gray[500]};
   text-decoration: line-through;
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
 `;
 
 const Price = styled.p`
   font-size: ${({ theme }) => theme.fonts.size['3xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.text.dark};
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
 `;
 
 const Discount = styled.span`
   font-size: ${({ theme }) => theme.fonts.size.sm};
-  color: ${({ theme }) => theme.colors.error};
+  color: ${({ theme }) => theme.colors.primary};
   font-weight: ${({ theme }) => theme.fonts.weight.semibold};
 `;
 

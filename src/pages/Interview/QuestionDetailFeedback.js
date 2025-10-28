@@ -71,13 +71,13 @@ const QuestionDetailFeedback = () => {
             <FeedbackSection>
               <ToggleWrapper>
                 <ToggleButton
-                  active={feedbackMode === 'behavior'}
+                  $active={feedbackMode === 'behavior'}
                   onClick={() => setFeedbackMode('behavior')}
                 >
                   행동
                 </ToggleButton>
                 <ToggleButton
-                  active={feedbackMode === 'language'}
+                  $active={feedbackMode === 'language'}
                   onClick={() => setFeedbackMode('language')}
                 >
                   언어
@@ -230,17 +230,17 @@ const ToggleButton = styled.button`
   border-radius: ${({ theme }) => theme.borderRadius.full};
   font-size: ${({ theme }) => theme.fonts.size.base};
   font-weight: ${({ theme }) => theme.fonts.weight.medium};
-  background-color: ${({ active }) =>
-    active ? '#9B8FF5' : 'transparent'};
-  color: ${({ active }) =>
-    active ? 'white' : '#666'};
+  background-color: ${({ $active }) =>
+    $active ? '#9B8FF5' : 'transparent'};
+  color: ${({ $active }) =>
+    $active ? 'white' : '#666'};
   transition: all ${({ theme }) => theme.transitions.fast};
   cursor: pointer;
   min-width: 80px;
 
   &:hover {
-    background-color: ${({ active }) =>
-      active ? '#8B7FE5' : 'rgba(155, 143, 245, 0.1)'};
+    background-color: ${({ $active }) =>
+      $active ? '#8B7FE5' : 'rgba(155, 143, 245, 0.1)'};
   }
 `;
 
@@ -250,6 +250,7 @@ const FeedbackContent = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   flex: 1;
   overflow-y: auto;
+  min-height: 400px;
 `;
 
 const FeedbackItem = styled.div`
