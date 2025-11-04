@@ -19,6 +19,7 @@ import QuestionDetailFeedback from './pages/Interview/QuestionDetailFeedback';
 import QuestionBank from './pages/QuestionBank';
 import Subscription from './pages/Subscription';
 import MyLog from './pages/MyLog';
+import MyDocuments from './pages/MyDocuments';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
           <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="/subscription" element={<Subscription />} />
           <Route path="/my-log" element={<MyLog />} />
+          <Route path="/my-log/documents" element={<MyDocuments />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
