@@ -3,11 +3,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { theme } from './styles/theme';
+import { AuthProvider } from './contexts/AuthContext';
+import PrivateRoute from './components/common/PrivateRoute';
+import ScrollToTop from './components/common/ScrollToTop';
 
 // Pages
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Main from './pages/Main';
+import Profile from './pages/Profile';
 import InterviewPrepare from './pages/Interview/InterviewPrepare';
 import QuestionSelection from './pages/Interview/QuestionSelection';
 import InterviewCameraTest from './pages/Interview/InterviewCameraTest';
@@ -25,32 +29,125 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/" element={<Main />} />
+      <AuthProvider>
+        <Router>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Main />} />
 
-          {/* Interview Routes */}
-          <Route path="/interview" element={<InterviewPrepare />} />
-          <Route path="/interview/question-selection" element={<QuestionSelection />} />
-          <Route path="/interview/camera-test" element={<InterviewCameraTest />} />
-          <Route path="/interview/mic-test" element={<InterviewMicTest />} />
-          <Route path="/interview/ready" element={<InterviewReady />} />
-          <Route path="/interview/progress" element={<InterviewProgress />} />
-          <Route path="/interview/feedback" element={<InterviewFeedback />} />
-          <Route path="/interview/feedback/:questionId" element={<QuestionDetailFeedback />} />
+            {/* 온보딩은 회원가입 시 접근 (로그인 불필요) */}
+            <Route path="/onboarding" element={<Onboarding />} />
 
-          {/* Other Routes */}
-          <Route path="/question-bank" element={<QuestionBank />} />
-          <Route path="/subscription" element={<Subscription />} />
-          <Route path="/my-log" element={<MyLog />} />
-          <Route path="/my-log/documents" element={<MyDocuments />} />
+            {/* Interview Routes - 로그인 필요 */}
+            <Route
+              path="/interview"
+              element={
+                <PrivateRoute>
+                  <InterviewPrepare />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/question-selection"
+              element={
+                <PrivateRoute>
+                  <QuestionSelection />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/camera-test"
+              element={
+                <PrivateRoute>
+                  <InterviewCameraTest />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/mic-test"
+              element={
+                <PrivateRoute>
+                  <InterviewMicTest />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/ready"
+              element={
+                <PrivateRoute>
+                  <InterviewReady />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/progress"
+              element={
+                <PrivateRoute>
+                  <InterviewProgress />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/feedback"
+              element={
+                <PrivateRoute>
+                  <InterviewFeedback />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/interview/feedback/:questionId"
+              element={
+                <PrivateRoute>
+                  <QuestionDetailFeedback />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+            {/* Other Routes */}
+            {/* 이용권은 로그인 없이도 접근 가능 */}
+            <Route path="/subscription" element={<Subscription />} />
+
+            {/* 로그인 필요한 페이지들 */}
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/question-bank"
+              element={
+                <PrivateRoute>
+                  <QuestionBank />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-log"
+              element={
+                <PrivateRoute>
+                  <MyLog />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-log/documents"
+              element={
+                <PrivateRoute>
+                  <MyDocuments />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

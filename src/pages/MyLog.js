@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import Layout from '../components/common/Layout';
+import { getMyLog } from '../api/userService';
 
 const GROWTH_DATA = [
   { session: '1회', score: 30 },
@@ -48,6 +50,47 @@ const INTERVIEW_HISTORY = [
 ];
 
 const MyLog = () => {
+  const navigate = useNavigate();
+  const [myLogData, setMyLogData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMyLog = async () => {
+      try {
+        const data = await getMyLog();
+        setMyLogData(data);
+      } catch (error) {
+        console.error('Failed to fetch my log:', error);
+        alert('면접 기록을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyLog();
+  }, []);
+
+  const handleHistoryClick = (sessionId) => {
+    // 특정 면접 기록 클릭 시 피드백 페이지로 이동
+    navigate(`/interview/feedback/${sessionId}`);
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <Container>
+          <div>로딩 중...</div>
+        </Container>
+      </Layout>
+    );
+  }
+
+  // API 응답이 없으면 더미 데이터 사용
+  const growthData = myLogData?.growthReport || GROWTH_DATA;
+  const skillData = myLogData?.latestSkillReport || SKILL_DATA;
+  const behaviorData = myLogData?.latestBehaviorReport || BEHAVIOR_DATA;
+  const interviewHistory = myLogData?.interviewHistory || INTERVIEW_HISTORY;
+
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
       <Container>
@@ -61,7 +104,7 @@ const MyLog = () => {
 
             <ChartContainer>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={GROWTH_DATA}>
+              <LineChart data={growthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                 <XAxis dataKey="session" stroke="#9E9E9E" />
                 <YAxis domain={[0, 100]} stroke="#9E9E9E" />
@@ -83,21 +126,23 @@ const MyLog = () => {
         <Section>
           <SectionTitleBar>3차 면접 역량</SectionTitleBar>
           <ContentWrapper>
-            <SectionInfo>(2025.04.23) | 3차 면접</SectionInfo>
-            <ImprovementBadge>
-              2차 대비 자신감이 30% 증가했어요!
-            </ImprovementBadge>
+            <InterviewHeader>
+              <SectionInfo>(2025.04.23) | 3차 면접</SectionInfo>
+              <ImprovementBadge>
+                2차 대비 자신감이 30% 증가했어요!
+              </ImprovementBadge>
+            </InterviewHeader>
 
             <FeedbackText>
-            면접 전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와
-            자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
-          </FeedbackText>
+              면접 전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와
+              자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
+            </FeedbackText>
 
           <RadarChartsContainer>
             <RadarChartWrapper>
               <RadarChartTitle>직무 역량</RadarChartTitle>
               <ResponsiveContainer width="100%" height={300}>
-                <RadarChart data={SKILL_DATA}>
+                <RadarChart data={skillData}>
                   <PolarGrid stroke="#E0E0E0" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
                   <PolarRadiusAxis domain={[0, 100]} />
@@ -114,7 +159,7 @@ const MyLog = () => {
             <RadarChartWrapper>
               <RadarChartTitle>비언어적 역량</RadarChartTitle>
               <ResponsiveContainer width="100%" height={300}>
-                <RadarChart data={BEHAVIOR_DATA}>
+                <RadarChart data={behaviorData}>
                   <PolarGrid stroke="#E0E0E0" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
                   <PolarRadiusAxis domain={[0, 100]} />
@@ -140,8 +185,12 @@ const MyLog = () => {
             </SectionSubtitle>
 
             <HistoryList>
-            {INTERVIEW_HISTORY.map((item, index) => (
-              <HistoryItem key={index}>
+            {interviewHistory.map((item, index) => (
+              <HistoryItem
+                key={item.sessionId || index}
+                onClick={() => handleHistoryClick(item.sessionId)}
+                $clickable={true}
+              >
                 <HistoryDate>{item.date}</HistoryDate>
                 <HistoryScore>{item.score}점</HistoryScore>
               </HistoryItem>
@@ -190,20 +239,35 @@ const SectionSubtitle = styled.p`
   margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
+const InterviewHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  flex-wrap: wrap;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
 const SectionInfo = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.lg};
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: ${({ theme }) => theme.colors.text.dark};
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
 `;
 
 const ImprovementBadge = styled.div`
-  display: inline-block;
-  background-color: ${({ theme }) => theme.colors.primary};
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #8973FF 0%, #7BA3FF 100%);
   color: white;
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.xl};
   border-radius: ${({ theme }) => theme.borderRadius.full};
-  font-size: ${({ theme }) => theme.fonts.size.sm};
-  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  box-shadow: 0 4px 12px rgba(137, 115, 255, 0.3);
 `;
 
 const ChartContainer = styled.div`
@@ -212,10 +276,14 @@ const ChartContainer = styled.div`
 `;
 
 const FeedbackText = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.lg};
+  font-size: ${({ theme }) => theme.fonts.size.xl};
+  font-weight: ${({ theme }) => theme.fonts.weight.medium};
   color: ${({ theme }) => theme.colors.text.dark};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  line-height: 1.6;
+  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+  line-height: 1.8;
+  background-color: ${({ theme }) => theme.colors.gray[50]};
+  padding: ${({ theme }) => theme.spacing.xl};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
 `;
 
 const RadarChartsContainer = styled.div`
@@ -251,20 +319,25 @@ const HistoryList = styled.div`
 `;
 
 const HistoryItem = styled.div`
-  background-color: ${({ theme }) => theme.colors.gray[50]};
-  border: 1px solid ${({ theme }) => theme.colors.gray[200]};
+  background-color: white;
+  border: 1px solid ${({ theme }) => theme.colors.gray[300]};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
+  cursor: ${({ $clickable }) => ($clickable ? 'pointer' : 'default')};
   transition: all ${({ theme }) => theme.transitions.fast};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    transform: translateX(4px);
-    background-color: ${({ theme }) => theme.colors.gray[100]};
-    border-color: ${({ theme }) => theme.colors.primary};
+    ${({ $clickable }) =>
+      $clickable &&
+      `
+      transform: translateX(4px);
+      border-color: #7C6FEE;
+      box-shadow: 0 4px 12px rgba(124, 111, 238, 0.2);
+    `}
   }
 `;
 

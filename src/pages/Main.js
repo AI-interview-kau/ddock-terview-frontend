@@ -32,7 +32,7 @@ const Main = () => {
   const navigate = useNavigate();
 
   return (
-    <Layout isLoggedIn={true} userName="김똑쓰">
+    <Layout>
       {/* Hero Section */}
       <HeroSection>
         <Star style={{ top: '10%', left: '15%' }} src={starIcon} alt="" />
@@ -170,15 +170,15 @@ const Main = () => {
         <SectionTitle>똑쓰들을 위한 노력은 계속됩니다.</SectionTitle>
 
         <PlanCards>
-          <PlanCard>
+          <PlanCard onClick={() => navigate('/onboarding')}>
             <PlanIcon src={signUpIcon} alt="Sign Up" />
             <PlanTitle>회원가입 하러가기</PlanTitle>
           </PlanCard>
-          <PlanCard>
+          <PlanCard onClick={() => navigate('/login')}>
             <PlanIcon src={loginIcon} alt="Login" />
             <PlanTitle>로그인 하러가기</PlanTitle>
           </PlanCard>
-          <PlanCard>
+          <PlanCard onClick={() => navigate('/subscription')}>
             <PlanIcon src={ticketIcon} alt="Ticket" />
             <PlanTitle>이용권 보러가기</PlanTitle>
           </PlanCard>
@@ -551,6 +551,13 @@ const PlanCard = styled.div.attrs({ className: 'plan-card' })`
   align-items: center;
   justify-content: flex-start;
   gap: ${({ theme }) => theme.spacing.xl};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: ${({ theme }) => theme.shadows.xl};
+  }
 `;
 
 const PlanIcon = styled.img.attrs({ className: 'plan-icon' })`

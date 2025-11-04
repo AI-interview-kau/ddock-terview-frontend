@@ -1,15 +1,19 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../../components/common/Layout';
 import interviewIcon from '../../assets/icons/interview.png';
 
 const InterviewReady = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedQuestions = location.state?.selectedQuestions || [];
 
   const handleStart = () => {
-    // 면접 진행 화면으로 이동
-    navigate('/interview/progress');
+    // 면접 진행 화면으로 이동 (선택한 질문들 전달)
+    navigate('/interview/progress', {
+      state: { selectedQuestions }
+    });
   };
 
   const handleExit = () => {
