@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../components/common/Layout';
 import Button from '../components/common/Button';
+import Footer from '../components/common/Footer';
 import ticketIcon from '../assets/icons/이용권.png';
+import { useAuth } from '../contexts/AuthContext';
+import { getSubscriptionInfo, purchaseSubscription } from '../api/userService';
 
 const PLANS = [
   {
@@ -52,8 +56,56 @@ const PLANS = [
 ];
 
 const Subscription = () => {
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSubscriptionInfo = async () => {
+      if (!isLoggedIn) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getSubscriptionInfo();
+        setSubscriptionInfo(data);
+      } catch (error) {
+        console.error('Failed to fetch subscription info:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubscriptionInfo();
+  }, [isLoggedIn]);
+
+  const handlePurchase = async (planId) => {
+    if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const result = await purchaseSubscription({
+        planId: planId,
+        paymentMethod: 'card', // 기본 결제 방법
+      });
+
+      alert('이용권이 구매되었습니다!');
+      // 구매 후 정보 다시 불러오기
+      const data = await getSubscriptionInfo();
+      setSubscriptionInfo(data);
+    } catch (error) {
+      console.error('Failed to purchase subscription:', error);
+      alert('이용권 구매에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
   return (
-    <Layout isLoggedIn={false}>
+    <Layout>
       <Container>
         {/* 헤더 */}
         <Header>
@@ -61,7 +113,11 @@ const Subscription = () => {
             다가오는 세해에도 더 나은 나를 위해, 면접 준비를 완벽하게!
           </HeaderTitle>
           <HeaderSubtitle>똑터뷰와 함께 시작해볼까요?</HeaderSubtitle>
-          <LoginButton>로그인 후 이용하기</LoginButton>
+          {!isLoggedIn && (
+            <LoginButton onClick={() => navigate('/login')}>
+              로그인 후 이용하기
+            </LoginButton>
+          )}
         </Header>
 
         {/* 플랜 카드 */}
@@ -132,29 +188,7 @@ const Subscription = () => {
         </Notice>
 
         {/* 푸터 */}
-        <Footer>
-          <FooterLinks>
-            <FooterLink>서비스 이용약관</FooterLink>
-            <FooterLink>개인정보 처리방침</FooterLink>
-            <FooterLink>데이터 서비스 이용약관</FooterLink>
-            <FooterLink>이용자 관리 및 운영사생</FooterLink>
-          </FooterLinks>
-
-          <FooterInfo>
-            <LogoSection>
-              <LogoIcon>😊</LogoIcon>
-              <LogoText>똑터뷰</LogoText>
-            </LogoSection>
-
-            <FooterDetails>
-              <FooterText>Team 똑쓰</FooterText>
-              <FooterText>대표: 홍길수</FooterText>
-              <FooterText>전화번호: 010-1234-5678</FooterText>
-              <FooterText>이메일: plus@gmail.com</FooterText>
-              <FooterCopyright>@Ddokterview ALL RIGHTS RESERVED</FooterCopyright>
-            </FooterDetails>
-          </FooterInfo>
-        </Footer>
+        <Footer />
       </Container>
     </Layout>
   );
@@ -197,25 +231,25 @@ const LoginButton = styled(Button)`
 const PlansGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.xl};
-  max-width: 1400px;
-  margin: ${({ theme }) => theme.spacing['4xl']} auto;
+  gap: ${({ theme }) => theme.spacing.lg};
+  max-width: 1000px;
+  margin: ${({ theme }) => theme.spacing['3xl']} auto;
   padding: 0 ${({ theme }) => theme.spacing.xl};
 `;
 
 const PlanCard = styled.div`
   background: url(${ticketIcon}) center/contain no-repeat;
   background-size: 100% 100%;
-  padding: ${({ theme }) => theme.spacing.xl} ${({ theme }) => theme.spacing['2xl']};
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
   transition: all ${({ theme }) => theme.transitions.fast};
   position: relative;
-  min-height: 150px;
+  min-height: 120px;
   display: flex;
   align-items: center;
 
   &:hover {
-    transform: translateY(-8px);
-    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
+    transform: translateY(-4px);
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.12));
   }
 `;
 
@@ -232,22 +266,22 @@ const PlanLeft = styled.div`
 `;
 
 const PlanName = styled.h3`
-  font-size: ${({ theme }) => theme.fonts.size['2xl']};
+  font-size: ${({ theme }) => theme.fonts.size.xl};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: ${({ theme }) => theme.colors.text.dark};
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
 `;
 
 const PlanDuration = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.sm};
+  font-size: ${({ theme }) => theme.fonts.size.xs};
   color: ${({ theme }) => theme.colors.gray[600]};
 `;
 
 const Features = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.md};
-  margin-top: ${({ theme }) => theme.spacing.xl};
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-top: ${({ theme }) => theme.spacing.md};
 `;
 
 const Feature = styled.div`
@@ -272,9 +306,9 @@ const PlanRight = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.md};
   border-left: 2px dashed ${({ theme }) => theme.colors.gray[300]};
-  padding-left: ${({ theme }) => theme.spacing.xl};
+  padding-left: ${({ theme }) => theme.spacing.lg};
 `;
 
 
@@ -283,21 +317,21 @@ const PriceInfo = styled.div`
 `;
 
 const OriginalPrice = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-size: ${({ theme }) => theme.fonts.size.sm};
   color: ${({ theme }) => theme.colors.gray[500]};
   text-decoration: line-through;
   margin-bottom: ${({ theme }) => theme.spacing.xs};
 `;
 
 const Price = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size['3xl']};
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: ${({ theme }) => theme.colors.text.dark};
   margin-bottom: ${({ theme }) => theme.spacing.xs};
 `;
 
 const Discount = styled.span`
-  font-size: ${({ theme }) => theme.fonts.size.sm};
+  font-size: ${({ theme }) => theme.fonts.size.xs};
   color: ${({ theme }) => theme.colors.primary};
   font-weight: ${({ theme }) => theme.fonts.weight.semibold};
 `;
@@ -326,76 +360,6 @@ const NoticeItem = styled.li`
   font-size: ${({ theme }) => theme.fonts.size.sm};
   color: ${({ theme }) => theme.colors.text.secondary};
   line-height: 1.6;
-`;
-
-const Footer = styled.footer`
-  background-color: #000;
-  padding: ${({ theme }) => theme.spacing['3xl']} ${({ theme }) => theme.spacing.xl};
-  margin-top: ${({ theme }) => theme.spacing['4xl']};
-`;
-
-const FooterLinks = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: ${({ theme }) => theme.spacing.xl};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  flex-wrap: wrap;
-`;
-
-const FooterLink = styled.a`
-  color: white;
-  font-size: ${({ theme }) => theme.fonts.size.sm};
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const FooterInfo = styled.div`
-  text-align: center;
-`;
-
-const LogoSection = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: ${({ theme }) => theme.spacing.md};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-`;
-
-const LogoIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  border-radius: ${({ theme }) => theme.borderRadius.full};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${({ theme }) => theme.fonts.size.xl};
-`;
-
-const LogoText = styled.span`
-  font-size: ${({ theme }) => theme.fonts.size.xl};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: white;
-`;
-
-const FooterDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.xs};
-`;
-
-const FooterText = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.sm};
-  color: ${({ theme }) => theme.colors.gray[400]};
-`;
-
-const FooterCopyright = styled.p`
-  font-size: ${({ theme }) => theme.fonts.size.xs};
-  color: ${({ theme }) => theme.colors.gray[500]};
-  margin-top: ${({ theme }) => theme.spacing.md};
 `;
 
 export default Subscription;

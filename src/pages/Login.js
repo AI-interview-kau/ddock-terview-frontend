@@ -3,18 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
 import Button from '../components/common/Button';
-import logo from '../assets/icons/logo.png';
+import { ReactComponent as Logo } from '../assets/icons/logo.svg';
 import ddockTerview from '../assets/icons/ddock-terview.png';
-import kakaoIcon from '../assets/icons/kakao.png';
-import googleIcon from '../assets/icons/google.png';
-import appleIcon from '../assets/icons/apple.png';
+import { ReactComponent as KakaoIcon } from '../assets/icons/카카오.svg';
+import { ReactComponent as GoogleIcon } from '../assets/icons/구글.svg';
+import { ReactComponent as AppleIcon } from '../assets/icons/애플.svg';
+import { useAuth } from '../contexts/AuthContext';
+import { login as loginAPI } from '../api/authService';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,35 +26,76 @@ const Login = () => {
       ...prev,
       [name]: value,
     }));
+    setError(''); // 입력 시 에러 메시지 초기화
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // 로그인 로직
-    navigate('/onboarding');
+    setError('');
+
+    try {
+      // API 호출
+      const response = await loginAPI(formData.email, formData.password);
+
+      // 응답: { grante, accessToken, refresh }
+      if (response.accessToken) {
+        // 토큰 저장
+        const userData = {
+          token: response.accessToken,
+          refreshToken: response.refresh,
+          email: formData.email,
+        };
+
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        // AuthContext에 로그인 상태 저장
+        login(userData);
+
+        navigate('/'); // 로그인 성공 시 메인 페이지로
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      if (error.response?.status === 404) {
+        setError('사용자를 찾을 수 없습니다.');
+      } else {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
+    }
   };
 
   const handleSocialLogin = (provider) => {
-    // 소셜 로그인 로직
     console.log(`${provider} 로그인`);
-    navigate('/onboarding');
+
+    if (provider === 'ddockterview') {
+      // 똑터뷰 자체 서비스 - 회원가입 (온보딩으로 이동, 아직 로그인 안 함)
+      navigate('/onboarding');
+    } else {
+      // 카카오, 구글, 애플 소셜 로그인 - 기존 사용자로 가정
+      login({
+        email: `${provider}@example.com`,
+        name: '김똑쓰',
+      });
+      navigate('/'); // 메인 페이지로
+    }
   };
 
   return (
     <Container>
-      <Header isLoggedIn={false} />
+      <Header />
 
         <LoginBox>
           <LogoSection>
-            <LogoImage src={logo} alt="똑터뷰 로고" />
+            <LogoWrapper>
+              <Logo />
+            </LogoWrapper>
             <DdockTerviewIcon src={ddockTerview} alt="똑터뷰 아이콘" />
           </LogoSection>
 
           <Form onSubmit={handleSubmit}>
             <Input
-              type="email"
+              type="text"
               name="email"
-              placeholder="이메일"
+              placeholder="아이디"
               value={formData.email}
               onChange={handleChange}
               required
@@ -64,6 +109,8 @@ const Login = () => {
               required
             />
 
+            {error && <ErrorMessage>{error}</ErrorMessage>}
+
             <LoginButton type="submit">Login</LoginButton>
           </Form>
 
@@ -72,14 +119,25 @@ const Login = () => {
           <SocialLoginSection>
             <SocialLoginText>소셜계정으로 로그인</SocialLoginText>
             <SocialButtonGroup>
+              <SocialButton onClick={() => handleSocialLogin('ddockterview')}>
+                <DdockterviewIconWrapper>
+                  <Logo />
+                </DdockterviewIconWrapper>
+              </SocialButton>
               <SocialButton onClick={() => handleSocialLogin('kakao')}>
-                <SocialIconImage src={kakaoIcon} alt="카카오 로그인" />
+                <KakaoIconWrapper>
+                  <KakaoIcon />
+                </KakaoIconWrapper>
               </SocialButton>
               <SocialButton onClick={() => handleSocialLogin('google')}>
-                <SocialIconImage $large src={googleIcon} alt="구글 로그인" />
+                <GoogleIconWrapper>
+                  <GoogleIcon />
+                </GoogleIconWrapper>
               </SocialButton>
               <SocialButton onClick={() => handleSocialLogin('apple')}>
-                <SocialIconImage $large src={appleIcon} alt="애플 로그인" />
+                <AppleIconWrapper>
+                  <AppleIcon />
+                </AppleIconWrapper>
               </SocialButton>
             </SocialButtonGroup>
           </SocialLoginSection>
@@ -116,10 +174,14 @@ const LogoSection = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing['2xl']};
 `;
 
-const LogoImage = styled.img`
+const LogoWrapper = styled.div`
   width: 150px;
   height: auto;
-  object-fit: contain;
+
+  svg {
+    width: 100%;
+    height: auto;
+  }
 `;
 
 const DdockTerviewIcon = styled.img`
@@ -161,6 +223,18 @@ const LoginButton = styled(Button)`
   font-size: ${({ theme }) => theme.fonts.size.lg};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   margin-top: ${({ theme }) => theme.spacing.md};
+  background: linear-gradient(90deg, #8973FF 0%, #7BA3FF 100%);
+
+  &:hover {
+    background: linear-gradient(90deg, #7A64EE 0%, #6A92EE 100%);
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: #ff4444;
+  font-size: ${({ theme }) => theme.fonts.size.sm};
+  text-align: center;
+  margin-top: ${({ theme }) => theme.spacing.sm};
 `;
 
 const Divider = styled.div`
@@ -186,6 +260,7 @@ const SocialLoginText = styled.p`
 const SocialButtonGroup = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.lg};
+  align-items: center;
 `;
 
 const SocialButton = styled.button`
@@ -208,10 +283,50 @@ const SocialButton = styled.button`
   }
 `;
 
-const SocialIconImage = styled.img`
-  width: ${({ $large }) => ($large ? '140%' : '100%')};
-  height: ${({ $large }) => ($large ? '140%' : '100%')};
-  object-fit: cover;
+const DdockterviewIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 56px !important;
+    height: 56px !important;
+  }
+`;
+
+const KakaoIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 56px !important;
+    height: 56px !important;
+  }
+`;
+
+const GoogleIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 56px !important;
+    height: 56px !important;
+    transform: scale(1.5) translate(0.5px, 1.5px);
+  }
+`;
+
+const AppleIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 56px !important;
+    height: 56px !important;
+    transform: scale(1.5) translate(0.5px, 1.5px);
+  }
 `;
 
 export default Login;

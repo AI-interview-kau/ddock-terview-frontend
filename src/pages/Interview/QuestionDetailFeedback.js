@@ -111,6 +111,7 @@ const QuestionDetailFeedback = () => {
 
 const Container = styled.div`
   min-height: calc(100vh - 80px);
+  background-color: ${({ theme }) => theme.colors.background};
   padding: ${({ theme }) => theme.spacing.xl};
   max-width: 1400px;
   margin: 0 auto;
@@ -119,11 +120,11 @@ const Container = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: ${({ theme }) => theme.fonts.size['4xl']};
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: white;
   background-color: #2C2539;
-  padding: ${({ theme }) => theme.spacing.xl} ${({ theme }) => theme.spacing['2xl']};
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
   border-top-left-radius: ${({ theme }) => theme.borderRadius.md};
   border-top-right-radius: ${({ theme }) => theme.borderRadius.md};
 `;
@@ -151,7 +152,6 @@ const ContentGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: ${({ theme }) => theme.spacing['3xl']};
   flex: 1;
-  align-items: start;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
     grid-template-columns: 1fr;
@@ -160,10 +160,8 @@ const ContentGrid = styled.div`
 
 const VideoSection = styled.div`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  position: sticky;
-  top: 0;
 `;
 
 const VideoPlayer = styled.div`
@@ -184,7 +182,7 @@ const PlayButton = styled.button`
   width: 80px;
   height: 80px;
   border-radius: ${({ theme }) => theme.borderRadius.full};
-  background-color: #9B8FF5;
+  background-color: ${({ theme }) => theme.colors.primary};
   color: white;
   font-size: ${({ theme }) => theme.fonts.size['3xl']};
   display: flex;
@@ -196,7 +194,7 @@ const PlayButton = styled.button`
 
   &:hover {
     transform: scale(1.1);
-    background-color: #8B7FE5;
+    background-color: ${({ theme }) => theme.colors.primaryDark};
   }
 `;
 
@@ -218,7 +216,7 @@ const FeedbackSection = styled.div`
 
 const ToggleWrapper = styled.div`
   display: flex;
-  background-color: ${({ theme }) => theme.colors.gray[300]};
+  background-color: ${({ theme }) => theme.colors.gray[200]};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   padding: 4px;
   width: fit-content;
@@ -226,21 +224,20 @@ const ToggleWrapper = styled.div`
 `;
 
 const ToggleButton = styled.button`
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing['2xl']};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   font-size: ${({ theme }) => theme.fonts.size.base};
-  font-weight: ${({ theme }) => theme.fonts.weight.medium};
-  background-color: ${({ $active }) =>
-    $active ? '#9B8FF5' : 'transparent'};
-  color: ${({ $active }) =>
-    $active ? 'white' : '#666'};
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  background-color: ${({ $active, theme }) =>
+    $active ? theme.colors.primary : 'transparent'};
+  color: ${({ $active, theme }) =>
+    $active ? 'white' : theme.colors.text.dark};
   transition: all ${({ theme }) => theme.transitions.fast};
   cursor: pointer;
-  min-width: 80px;
 
   &:hover {
-    background-color: ${({ $active }) =>
-      $active ? '#8B7FE5' : 'rgba(155, 143, 245, 0.1)'};
+    background-color: ${({ $active, theme }) =>
+      $active ? theme.colors.primaryDark : theme.colors.gray[300]};
   }
 `;
 
@@ -250,10 +247,10 @@ const FeedbackContent = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   flex: 1;
   overflow-y: auto;
-  min-height: 400px;
 `;
 
 const FeedbackItem = styled.div`
+  background-color: #E8E4F9;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   padding: ${({ theme }) => theme.spacing.lg};
 `;

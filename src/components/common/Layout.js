@@ -2,10 +2,10 @@ import React from 'react';
 import styled from 'styled-components';
 import Header from './Header';
 
-const Layout = ({ children, isLoggedIn = false, userName, showHeader = true }) => {
+const Layout = ({ children, showHeader = true }) => {
   return (
     <LayoutContainer>
-      {showHeader && <Header isLoggedIn={isLoggedIn} userName={userName} />}
+      {showHeader && <Header />}
       <Main>{children}</Main>
     </LayoutContainer>
   );

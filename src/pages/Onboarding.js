@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import Layout from '../components/common/Layout';
+import Header from '../components/common/Header';
 import Button from '../components/common/Button';
+import { ReactComponent as Logo } from '../assets/icons/logo.svg';
+import ddockTerview from '../assets/icons/ddock-terview.png';
+import ddocksCharacter from '../assets/icons/ddocks.png';
+import { useAuth } from '../contexts/AuthContext';
+import { signup } from '../api/authService';
 
 const JOB_CATEGORIES = [
   '경영 기획', '회계 · 세무 · 재무', '인사', '행정 · 사무지원', '법무 · 감사',
@@ -19,9 +24,12 @@ const JOB_CATEGORIES = [
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const { login, user } = useAuth();
   const [showJobModal, setShowJobModal] = useState(false);
   const [formData, setFormData] = useState({
+    id: '',
+    password: '',
+    confirmPassword: '',
     name: '',
     jobCategories: [],
     currentStatus: '',
@@ -55,111 +63,180 @@ const Onboarding = () => {
     setShowJobModal(false);
   };
 
-  const handleSubmit = () => {
-    // 온보딩 완료
-    navigate('/');
+  const handleSubmit = async () => {
+    // 유효성 검사
+    if (!formData.id || !formData.password || !formData.confirmPassword ||
+        !formData.name || formData.jobCategories.length === 0 || !formData.currentStatus) {
+      alert('모든 정보를 입력해주세요.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      // 회원가입 API 호출
+      const response = await signup({
+        id: formData.id,
+        password: formData.password,
+        name: formData.name,
+        jobCategories: formData.jobCategories,
+        currentStatus: formData.currentStatus,
+      });
+
+      alert('회원가입이 완료되었습니다!');
+      // 회원가입 후 로그인 페이지로 이동
+      navigate('/login');
+    } catch (error) {
+      console.error('Signup failed:', error);
+      if (error.response?.status === 409) {
+        alert('이미 존재하는 아이디입니다.');
+      } else {
+        alert('회원가입에 실패했습니다. 다시 시도해주세요.');
+      }
+    }
   };
 
   return (
-    <Layout showHeader={false}>
-      <Container>
-        <Logo>
-          <LogoIcon>😊</LogoIcon>
-          <LogoText>똑터뷰</LogoText>
-        </Logo>
+    <Container>
+      <Header />
 
-        <OnboardingBox>
-          <Character>
-            <CharacterIcon>🤖</CharacterIcon>
-            <SpeechBubble>
-              희망 직군에 따른
-              <br />
-              기출 질문이
-              <br />
-              제공됩니다!
-            </SpeechBubble>
-          </Character>
+      <CharacterSection>
+        <CharacterImage src={ddocksCharacter} alt="똑터뷰 캐릭터" />
+        <SpeechBubble>
+          희망 직군에 따른
+          <br />
+          기출 질문이
+          <br />
+          제공됩니다!
+        </SpeechBubble>
+      </CharacterSection>
 
-          <FormSection>
-            <Title>똑터뷰 가입을 환영합니다!</Title>
+      <ContentWrapper>
+        <FormWrapper>
+            <CenterLogo>
+              <CenterLogoIcon>
+                <Logo />
+              </CenterLogoIcon>
+              <CenterDdockTerviewIcon src={ddockTerview} alt="똑터뷰" />
+            </CenterLogo>
 
-            <FormGroup>
-              <Label>이름</Label>
-              <Input
-                type="text"
-                name="name"
-                placeholder="이루피"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </FormGroup>
+            <WelcomeText>똑터뷰 가입을 환영합니다!</WelcomeText>
+            <Divider />
 
-            <FormGroup>
-              <Label>희망 직군</Label>
-              <JobInput
-                type="text"
-                placeholder="희망하는 직군을 선택해세요 !"
-                value={formData.jobCategories.join(', ')}
-                onClick={() => setShowJobModal(true)}
-                readOnly
-              />
-            </FormGroup>
+            <FormSection>
+              <FormGroup>
+                <Label>ID</Label>
+                <Input
+                  type="text"
+                  name="id"
+                  placeholder="아이디를 입력하세요"
+                  value={formData.id}
+                  onChange={handleChange}
+                />
+              </FormGroup>
 
-            <FormGroup>
-              <Label>현재 상태</Label>
-              <StatusGroup>
-                <StatusButton
-                  type="button"
-                  $active={formData.currentStatus === '실무자'}
-                  onClick={() => handleStatusClick('실무자')}
-                >
-                  실무자
-                </StatusButton>
-                <StatusButton
-                  type="button"
-                  $active={formData.currentStatus === '학생'}
-                  onClick={() => handleStatusClick('학생')}
-                >
-                  학생
-                </StatusButton>
-                <StatusButton
-                  type="button"
-                  $active={formData.currentStatus === '무직'}
-                  onClick={() => handleStatusClick('무직')}
-                >
-                  무직
-                </StatusButton>
-              </StatusGroup>
-            </FormGroup>
+              <FormGroup>
+                <Label>비밀번호</Label>
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="비밀번호를 입력하세요"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </FormGroup>
 
-            <SubmitButton fullWidth onClick={handleSubmit}>
-              똑터뷰 시작하기
-            </SubmitButton>
-          </FormSection>
-        </OnboardingBox>
+              <FormGroup>
+                <Label>비밀번호 확인</Label>
+                <Input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="비밀번호를 다시 입력하세요"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </FormGroup>
 
-        {/* 직군 선택 모달 */}
+              <FormGroup>
+                <Label>이름</Label>
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="이루피"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <Label>희망 직군</Label>
+                <Input
+                  type="text"
+                  placeholder="희망하는 직군을 선택해세요 !"
+                  value={formData.jobCategories.join(', ')}
+                  onClick={() => setShowJobModal(true)}
+                  readOnly
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <Label>현재 상태</Label>
+                <StatusGroup>
+                  <StatusButton
+                    type="button"
+                    $active={formData.currentStatus === '실무자'}
+                    onClick={() => handleStatusClick('실무자')}
+                  >
+                    실무자
+                  </StatusButton>
+                  <StatusButton
+                    type="button"
+                    $active={formData.currentStatus === '학생'}
+                    onClick={() => handleStatusClick('학생')}
+                  >
+                    학생
+                  </StatusButton>
+                  <StatusButton
+                    type="button"
+                    $active={formData.currentStatus === '무직'}
+                    onClick={() => handleStatusClick('무직')}
+                  >
+                    무직
+                  </StatusButton>
+                </StatusGroup>
+              </FormGroup>
+
+              <SubmitButton onClick={handleSubmit}>
+                똑터뷰 시작하기
+              </SubmitButton>
+            </FormSection>
+          </FormWrapper>
+        </ContentWrapper>
+
         {showJobModal && (
           <Modal>
             <ModalOverlay onClick={handleJobModalClose} />
             <ModalContent>
-              <ModalHeader>
-                <ModalTitle>희망 직군을 선택해주세요</ModalTitle>
-                <CloseButton onClick={handleJobModalClose}>×</CloseButton>
-              </ModalHeader>
+              <ModalTitle>희망 직군을 선택해주세요</ModalTitle>
 
-              <JobGrid>
-                {JOB_CATEGORIES.map((category) => (
-                  <JobCheckbox key={category}>
-                    <input
-                      type="checkbox"
-                      checked={formData.jobCategories.includes(category)}
-                      onChange={() => handleJobCategoryToggle(category)}
-                    />
-                    <span>{category}</span>
-                  </JobCheckbox>
-                ))}
-              </JobGrid>
+              <JobSection>
+                <JobSectionLabel>직군</JobSectionLabel>
+                <JobGrid>
+                  {JOB_CATEGORIES.map((category) => (
+                    <JobCheckbox key={category}>
+                      <input
+                        type="checkbox"
+                        checked={formData.jobCategories.includes(category)}
+                        onChange={() => handleJobCategoryToggle(category)}
+                      />
+                      <span>{category}</span>
+                    </JobCheckbox>
+                  ))}
+                </JobGrid>
+              </JobSection>
 
               <ModalFooter>
                 <ModalButton onClick={handleJobModalClose}>완료</ModalButton>
@@ -168,8 +245,7 @@ const Onboarding = () => {
             </ModalContent>
           </Modal>
         )}
-      </Container>
-    </Layout>
+    </Container>
   );
 };
 
@@ -180,72 +256,45 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing.xl};
-`;
-
-const Logo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
-`;
-
-const LogoIcon = styled.div`
-  width: 64px;
-  height: 64px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  border-radius: ${({ theme }) => theme.borderRadius.full};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${({ theme }) => theme.fonts.size['3xl']};
-`;
-
-const LogoText = styled.span`
-  font-size: ${({ theme }) => theme.fonts.size['3xl']};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ theme }) => theme.colors.text.primary};
-`;
-
-const OnboardingBox = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing['3xl']};
-  align-items: center;
-  max-width: 1000px;
-`;
-
-const Character = styled.div`
   position: relative;
+`;
+
+const ContentWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing['2xl']};
+`;
+
+const CharacterSection = styled.div`
+  position: fixed;
+  bottom: 100px;
+  left: 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
 `;
 
-const CharacterIcon = styled.div`
-  width: 200px;
-  height: 200px;
-  background: linear-gradient(135deg, #9B8FF5 0%, #7C6FEE 100%);
-  border-radius: ${({ theme }) => theme.borderRadius.full};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 100px;
-  box-shadow: ${({ theme }) => theme.shadows.xl};
+const CharacterImage = styled.img`
+  width: 280px;
+  height: auto;
 `;
 
 const SpeechBubble = styled.div`
   position: absolute;
-  top: -40px;
-  left: 220px;
+  top: 40px;
+  right: -220px;
   background-color: white;
-  padding: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
   border-radius: ${({ theme }) => theme.borderRadius.xl};
   color: ${({ theme }) => theme.colors.text.dark};
   font-size: ${({ theme }) => theme.fonts.size.base};
   font-weight: ${({ theme }) => theme.fonts.weight.medium};
   box-shadow: ${({ theme }) => theme.shadows.lg};
   white-space: nowrap;
+  line-height: 1.6;
 
   &::before {
     content: '';
@@ -261,39 +310,81 @@ const SpeechBubble = styled.div`
   }
 `;
 
-const FormSection = styled.div`
-  background-color: white;
-  padding: ${({ theme }) => theme.spacing['3xl']};
-  border-radius: ${({ theme }) => theme.borderRadius.xl};
-  min-width: 500px;
-  box-shadow: ${({ theme }) => theme.shadows.lg};
+const FormWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.lg};
+  max-width: 450px;
+  width: 100%;
 `;
 
-const Title = styled.h2`
-  font-size: ${({ theme }) => theme.fonts.size['2xl']};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ theme }) => theme.colors.primary};
+const CenterLogo = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const CenterLogoIcon = styled.div`
+  width: 120px;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 100%;
+    height: auto;
+  }
+`;
+
+const CenterDdockTerviewIcon = styled.img`
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+`;
+
+const WelcomeText = styled.p`
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  font-weight: ${({ theme }) => theme.fonts.weight.medium};
+  color: white;
   text-align: center;
-  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+`;
+
+const Divider = styled.div`
+  width: 120%;
+  max-width: 600px;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.8);
+  margin: ${({ theme }) => theme.spacing.sm} 0 ${({ theme }) => theme.spacing.lg} 0;
+`;
+
+const FormSection = styled.div`
+  width: 100%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.lg};
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.xs};
 `;
 
 const Label = styled.label`
-  display: block;
   font-size: ${({ theme }) => theme.fonts.size.base};
-  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
-  color: ${({ theme }) => theme.colors.text.dark};
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
+  font-weight: ${({ theme }) => theme.fonts.weight.medium};
+  color: white;
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
   background-color: white;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border: none;
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: ${({ theme }) => theme.fonts.size.base};
   color: ${({ theme }) => theme.colors.text.dark};
@@ -303,42 +394,62 @@ const Input = styled.input`
   }
 
   &:focus {
-    border-color: ${({ theme }) => theme.colors.primary};
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
   }
-`;
-
-const JobInput = styled(Input)`
-  cursor: pointer;
-  background-color: ${({ theme }) => theme.colors.gray[50]};
 `;
 
 const StatusGroup = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.md};
+  background-color: white;
+  padding: ${({ theme }) => theme.spacing.sm};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
 `;
 
 const StatusButton = styled.button`
   flex: 1;
-  padding: ${({ theme }) => theme.spacing.md};
-  background-color: ${({ $active, theme }) =>
-    $active ? theme.colors.primary : 'white'};
-  color: ${({ $active, theme }) =>
-    $active ? 'white' : theme.colors.text.dark};
-  border: 2px solid ${({ $active, theme }) =>
-    $active ? theme.colors.primary : theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  background-color: transparent;
+  color: #7C6FEE;
+  border: none;
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
   font-size: ${({ theme }) => theme.fonts.size.base};
   font-weight: ${({ theme }) => theme.fonts.weight.medium};
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
 
+  ${({ $active }) =>
+    $active &&
+    `
+    background-color: #7C6FEE;
+    color: white;
+  `}
+
   &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
+    background-color: ${({ $active }) => ($active ? '#6B5FDD' : '#F3F1FF')};
   }
 `;
 
-const SubmitButton = styled(Button)`
-  margin-top: ${({ theme }) => theme.spacing.xl};
+const SubmitButton = styled.button`
+  width: auto;
+  min-width: 200px;
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing['2xl']};
+  background: linear-gradient(90deg, #8973FF 0%, #7BA3FF 100%);
+  color: white;
+  border: none;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  font-size: ${({ theme }) => theme.fonts.size.lg};
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
+  margin: ${({ theme }) => theme.spacing.xl} auto 0;
+  display: block;
+
+  &:hover {
+    background: linear-gradient(90deg, #7A64EE 0%, #6A92EE 100%);
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.lg};
+  }
 `;
 
 // Modal styles
@@ -360,51 +471,47 @@ const ModalOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.7);
 `;
 
 const ModalContent = styled.div`
   position: relative;
   background-color: white;
-  border-radius: ${({ theme }) => theme.borderRadius.xl};
-  padding: ${({ theme }) => theme.spacing['2xl']};
-  max-width: 800px;
+  border-radius: ${({ theme }) => theme.borderRadius['2xl']};
+  padding: ${({ theme }) => theme.spacing['3xl']};
+  max-width: 700px;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: ${({ theme }) => theme.shadows.xl};
 `;
 
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const ModalTitle = styled.h3`
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  color: #7C6FEE;
+  text-align: center;
+  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+`;
+
+const JobSection = styled.div`
+  background-color: ${({ theme }) => theme.colors.gray[50]};
+  border: 1px solid ${({ theme }) => theme.colors.gray[200]};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  padding: ${({ theme }) => theme.spacing.xl};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
-const ModalTitle = styled.h3`
-  font-size: ${({ theme }) => theme.fonts.size.xl};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: ${({ theme }) => theme.colors.primary};
-`;
-
-const CloseButton = styled.button`
-  font-size: ${({ theme }) => theme.fonts.size['3xl']};
-  color: ${({ theme }) => theme.colors.gray[600]};
-  background: none;
-  border: none;
-  cursor: pointer;
-  line-height: 1;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.gray[800]};
-  }
+const JobSectionLabel = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-weight: ${({ theme }) => theme.fonts.weight.medium};
+  color: ${({ theme }) => theme.colors.text.dark};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
 const JobGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: ${({ theme }) => theme.spacing.md};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
 `;
 
 const JobCheckbox = styled.label`
@@ -414,15 +521,16 @@ const JobCheckbox = styled.label`
   cursor: pointer;
 
   input[type='checkbox'] {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
-    accent-color: ${({ theme }) => theme.colors.primary};
+    accent-color: #7C6FEE;
   }
 
   span {
     font-size: ${({ theme }) => theme.fonts.size.sm};
     color: ${({ theme }) => theme.colors.text.dark};
+    white-space: nowrap;
   }
 `;
 
@@ -431,15 +539,31 @@ const ModalFooter = styled.div`
   flex-direction: column;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.lg};
 `;
 
-const ModalButton = styled(Button)`
+const ModalButton = styled.button`
   padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing['3xl']};
+  background-color: #7C6FEE;
+  color: white;
+  border: none;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
+  min-width: 150px;
+
+  &:hover {
+    background-color: #6B5FDD;
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.lg};
+  }
 `;
 
 const SkipText = styled.p`
   font-size: ${({ theme }) => theme.fonts.size.sm};
-  color: ${({ theme }) => theme.colors.gray[500]};
+  color: ${({ theme }) => theme.colors.gray[400]};
 `;
 
 export default Onboarding;

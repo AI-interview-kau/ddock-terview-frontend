@@ -1,20 +1,47 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { FiHeart } from 'react-icons/fi';
 import Layout from '../../components/common/Layout';
+import { getInterviewDetail } from '../../api/userService';
 
-const MOCK_QUESTIONS = [
-  '본인이 가지고 있는 강점을 설명해주세요.',
-  '보안 취약점에 대해 알고 있는 것과 그 대응 방법은 무엇인가요?',
-  '코드 리뷰의 중요성에 대해 이야기해 주세요.',
-  '본인이 최선을 다해 성취한 경험에 대해서 이야기해 주세요.',
-  '보안 취약점에 대해 알고 있는 것과 그 대응 방법은 무엇인가요?',
+const MOCK_QUESTIONS_DEFAULT = [
+  { question: '본인이 가지고 있는 강점을 설명해주세요.', isFollowUp: false },
+  { question: '보안 취약점에 대해 알고 있는 것과 그 대응 방법은 무엇인가요?', isFollowUp: false },
+  { question: '코드 리뷰의 중요성에 대해 이야기해 주세요.', isFollowUp: false },
+  { question: '본인이 최선을 다해 성취한 경험에 대해서 이야기해 주세요.', isFollowUp: false },
+  { question: '보안 취약점에 대해 알고 있는 것과 그 대응 방법은 무엇인가요?', isFollowUp: false },
 ];
 
 const InterviewFeedback = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { sessionId } = useParams();
+
+  const [feedbackData, setFeedbackData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [savedQuestions, setSavedQuestions] = useState([]);
+
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      if (!sessionId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getInterviewDetail(sessionId);
+        setFeedbackData(data);
+      } catch (error) {
+        console.error('Failed to fetch interview detail:', error);
+        alert('피드백을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedback();
+  }, [sessionId]);
 
   const toggleSaveQuestion = (index) => {
     if (savedQuestions.includes(index)) {
@@ -24,9 +51,35 @@ const InterviewFeedback = () => {
     }
   };
 
-  const handleQuestionClick = (index) => {
-    navigate(`/interview/feedback/${index}`);
+  const handleQuestionClick = (questionId) => {
+    navigate(`/interview/feedback/question/${questionId}`);
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <Container>
+          <div>로딩 중...</div>
+        </Container>
+      </Layout>
+    );
+  }
+
+  // API 데이터가 없으면 더미 데이터 사용
+  const feedback = feedbackData?.feedback || {
+    totalScore: 82,
+    summary: '전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와 자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.',
+    strengths: [
+      '자신감 있는 태도와 명확한 목소리 톤이 인상적이었습니다.',
+      '질문의 의도를 잘 파악하고 논리적으로 답변하려는 노력이 돋보였습니다.',
+    ],
+    improvements: [
+      '일부 질문에서 예시가 부족해 구체성이 떨어졌습니다.',
+      '말의 속도가 조금 빠른 청중이 내용을 따라가기 어려웠을 수 있습니다.',
+    ],
+  };
+
+  const questions = feedbackData?.questions || MOCK_QUESTIONS_DEFAULT;
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
@@ -38,44 +91,28 @@ const InterviewFeedback = () => {
           <FeedbackCard>
             <ScoreBox>
               <ScoreLabel>총점:</ScoreLabel>
-              <Score>82점 / 100점</Score>
+              <Score>{feedback.totalScore}점 / 100점</Score>
             </ScoreBox>
 
             <FeedbackText>
-              전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와 자료스러운 태도를
-              보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
-              다음에는 답변 시간을 적절히 조절하여 더욱 실감을 살린 모의 면접을
-              시도해 보세요!
+              {feedback.summary}
             </FeedbackText>
 
             <FeedbackSection>
               <FeedbackTitle>장점</FeedbackTitle>
               <FeedbackList>
-                <FeedbackItem>
-                  자신감 있는 태도와 명확한 목소리 톤이 인상적이었습니다.
-                </FeedbackItem>
-                <FeedbackItem>
-                  질문의 의도를 잘 파악하고 논리적으로 답변하려는 노력이
-                  돋보였습니다.
-                </FeedbackItem>
+                {feedback.strengths.map((strength, index) => (
+                  <FeedbackItem key={index}>{strength}</FeedbackItem>
+                ))}
               </FeedbackList>
             </FeedbackSection>
 
             <FeedbackSection>
               <FeedbackTitle>개선점</FeedbackTitle>
               <FeedbackList>
-                <FeedbackItem>
-                  일부 질문에서 예시가 부족해 구체성이 떨어졌습니다. 구체적인
-                  상황을 곁들여 답변하면 더 설득력이 있을 것입니다.
-                </FeedbackItem>
-                <FeedbackItem>
-                  말의 속도가 조금 빠른 청중이 내용을 따라가기 어려웠을 수
-                  있습니다. 천천히 말하는 연습이 필요합니다.
-                </FeedbackItem>
-                <FeedbackItem>
-                  시선 처리에서 자연스럽지 않은 부분이 있어 약간 어색하게
-                  느껴졌습니다. 면접관을 바라보며 응시해 보세요.
-                </FeedbackItem>
+                {feedback.improvements.map((improvement, index) => (
+                  <FeedbackItem key={index}>{improvement}</FeedbackItem>
+                ))}
               </FeedbackList>
             </FeedbackSection>
           </FeedbackCard>
@@ -96,21 +133,26 @@ const InterviewFeedback = () => {
             </QuestionDescription>
 
             <QuestionList>
-              {MOCK_QUESTIONS.map((question, index) => (
+              {questions.map((item, index) => (
                 <QuestionCard
-                  key={index}
-                  onClick={() => handleQuestionClick(index)}
+                  key={item.questionId || index}
+                  onClick={() => handleQuestionClick(item.questionId || index)}
                 >
+                  {item.isFollowUp && (
+                    <FollowUpRibbon>
+                      <RibbonText>꼬리 질문</RibbonText>
+                    </FollowUpRibbon>
+                  )}
                   <HeartButton
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleSaveQuestion(index);
+                      toggleSaveQuestion(item.questionId || index);
                     }}
-                    $saved={savedQuestions.includes(index)}
+                    $saved={savedQuestions.includes(item.questionId || index)}
                   >
                     <FiHeart />
                   </HeartButton>
-                  <QuestionText>{question}</QuestionText>
+                  <QuestionText>{item.question}</QuestionText>
                 </QuestionCard>
               ))}
             </QuestionList>
@@ -254,6 +296,8 @@ const QuestionCard = styled.div`
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.fast};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
 
   &:hover {
     border-color: ${({ theme }) => theme.colors.primary};
@@ -261,6 +305,24 @@ const QuestionCard = styled.div`
     transform: translateX(4px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
+`;
+
+const FollowUpRibbon = styled.div`
+  position: absolute;
+  top: 12px;
+  right: -30px;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+  padding: 4px 40px;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+`;
+
+const RibbonText = styled.span`
+  font-size: ${({ theme }) => theme.fonts.size.xs};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  color: white;
+  white-space: nowrap;
 `;
 
 const HeartButton = styled.button`

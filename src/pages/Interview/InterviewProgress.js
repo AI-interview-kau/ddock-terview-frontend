@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
@@ -7,20 +7,31 @@ import iconInterview from '../../assets/icons/icon_interview.png';
 import calmInterviewer from '../../assets/icons/온화형 면접관.png';
 import pressureInterviewer from '../../assets/icons/압박형 면접관.png';
 import dryInterviewer from '../../assets/icons/건조형 면접관.png';
+import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
+import confettiGif from '../../images/폭죽.gif';
+import ddocksTail from '../../assets/icons/ddocks_tail.png';
 
-const MOCK_QUESTIONS = [
-  '자신의 강점과 약점은 무엇인가요?',
-  '왜 그렇게 생각하셨나요?',
-  '가장 힘들었던 순간이 무엇이었나요?',
-];
+const FOLLOW_UP_QUESTIONS = {
+  0: '그 강점을 실제로 활용했던 경험이 있나요?',
+  1: '그 생각이 결과에 어떤 영향을 주었나요?',
+  2: '그 상황을 어떻게 극복하셨나요?',
+};
 
 const InterviewProgress = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  // 선택한 질문들을 받아오기 (없으면 빈 배열)
+  const selectedQuestions = location.state?.selectedQuestions || [];
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [phase, setPhase] = useState('reading'); // 'reading' 또는 'answering'
+  const [phase, setPhase] = useState('reading'); // 'reading', 'answering', 'loading'
   const [timeLeft, setTimeLeft] = useState(10); // 질문 확인 시간 10초
   const [totalAnswerTime, setTotalAnswerTime] = useState(180); // 전체 답변 시간 3분
   const [interviewerType, setInterviewerType] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showFollowUpAlert, setShowFollowUpAlert] = useState(false);
+  const [isFollowUpQuestion, setIsFollowUpQuestion] = useState(false);
+  const [askedQuestions, setAskedQuestions] = useState([]); // 실제로 나온 질문들을 저장 (형식: { question: string, isFollowUp: boolean })
   const videoRef = useRef(null);
 
   const READING_TIME = 10; // 질문 확인 시간
@@ -83,28 +94,73 @@ const InterviewProgress = () => {
         setTimeLeft(totalAnswerTime); // 남은 전체 시간으로 시작
       } else if (phase === 'answering') {
         // 전체 답변 시간 종료 -> 면접 종료
-        navigate('/interview/feedback');
+        navigate('/interview/feedback', { state: { questions: askedQuestions } });
       }
     }
-  }, [timeLeft, phase, totalAnswerTime]);
+  }, [timeLeft, phase, totalAnswerTime, askedQuestions]);
 
   const handleSubmit = () => {
-    // 답변 제출 -> 다음 질문으로 (남은 시간 유지)
-    if (currentQuestionIndex < MOCK_QUESTIONS.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setPhase('reading');
-      setTimeLeft(READING_TIME);
+    // 질문 저장소로 면접하는 경우 꼬리질문 없음
+    if (currentQuestionIndex < selectedQuestions.length - 1) {
+      // 로딩 후 다음 질문으로 이동
+      setIsLoading(true);
+
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setPhase('reading');
+        setTimeLeft(READING_TIME);
+        setIsLoading(false);
+      }, 2500);
     } else {
       // 모든 질문 완료 - 피드백 페이지로
-      navigate('/interview/feedback');
+      navigate('/interview/feedback', { state: { questions: askedQuestions } });
     }
   };
 
-  const currentQuestion = MOCK_QUESTIONS[currentQuestionIndex];
+  // 현재 질문 (선택한 질문들 사용)
+  const currentQuestion = selectedQuestions[currentQuestionIndex] || '질문이 없습니다.';
+
+  // 질문이 바뀔 때마다 askedQuestions에 추가 (중복 방지)
+  useEffect(() => {
+    if (currentQuestion && currentQuestion !== '질문이 없습니다.') {
+      setAskedQuestions(prev => {
+        // 이미 존재하는 질문인지 확인
+        const alreadyExists = prev.some(item => item.question === currentQuestion);
+        if (alreadyExists) {
+          return prev;
+        }
+        return [...prev, { question: currentQuestion, isFollowUp: false }];
+      });
+    }
+  }, [currentQuestion]);
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
       <Container>
+        {isLoading && (
+          <LoadingOverlay>
+            <LoadingContent>
+              <LoadingSpinner />
+              <LoadingText>다음 질문을 생성 중이에요...</LoadingText>
+              <LoadingSubText>잠시만 기다려 주세요</LoadingSubText>
+            </LoadingContent>
+          </LoadingOverlay>
+        )}
+
+        {showFollowUpAlert && (
+          <FollowUpOverlay>
+            <FollowUpModal>
+              <ConfettiImageCenter src={confettiGif} alt="confetti" />
+              <FollowUpContent>
+                <FollowUpTitle>꼬리 질문!!</FollowUpTitle>
+                <FollowUpCharacter>
+                  <img src={ddocksTail} alt="똑스" />
+                </FollowUpCharacter>
+              </FollowUpContent>
+            </FollowUpModal>
+          </FollowUpOverlay>
+        )}
+
         <InterviewGrid>
           {/* 좌측 - AI 면접관 */}
           <InterviewerSection>
@@ -339,6 +395,131 @@ const ExitButton = styled.button`
     background-color: #4B5563;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const LoadingContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.xl};
+`;
+
+const LoadingSpinner = styled.div`
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(139, 122, 184, 0.3);
+  border-top-color: #8B7AB8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingText = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  color: white;
+`;
+
+const LoadingSubText = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  color: ${({ theme }) => theme.colors.gray[400]};
+`;
+
+const FollowUpOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const FollowUpModal = styled.div`
+  background-color: rgba(44, 36, 64, 0.95);
+  border-radius: ${({ theme }) => theme.borderRadius['3xl']};
+  padding: ${({ theme }) => theme.spacing['3xl']};
+  width: 500px;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: ${({ theme }) => theme.shadows['2xl']};
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+`;
+
+const ConfettiImageCenter = styled.img`
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+`;
+
+const FollowUpContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.xl};
+  position: relative;
+  z-index: 2;
+`;
+
+const FollowUpTitle = styled.h2`
+  font-size: 40px;
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  color: white;
+  white-space: nowrap;
+`;
+
+const FollowUpCharacter = styled.div`
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: bounce 1s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 `;
 

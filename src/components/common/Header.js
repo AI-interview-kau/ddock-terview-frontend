@@ -4,13 +4,15 @@ import styled from 'styled-components';
 import { FiUser, FiChevronDown } from 'react-icons/fi';
 import logo from '../../assets/icons/logo.png';
 import ddockTerview from '../../assets/icons/ddock-terview.png';
+import { useAuth } from '../../contexts/AuthContext';
 
-const Header = ({ isLoggedIn = false, userName = '김똑쓰' }) => {
+const Header = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
+  const { isLoggedIn, user, logout } = useAuth();
 
   const handleLogout = () => {
-    // 로그아웃 로직
+    logout();
     navigate('/login');
   };
 
@@ -38,13 +40,13 @@ const Header = ({ isLoggedIn = false, userName = '김똑쓰' }) => {
                 <ProfileIcon>
                   <FiUser />
                 </ProfileIcon>
-                <UserName>{userName} 님 반갑습니다.</UserName>
+                <UserName>{user?.name || '김똑쓰'} 님 반갑습니다.</UserName>
                 <FiChevronDown />
               </ProfileButton>
 
               {showDropdown && (
                 <Dropdown>
-                  <DropdownItem onClick={() => navigate('/my-log/profile')}>
+                  <DropdownItem onClick={() => navigate('/profile')}>
                     내 정보
                   </DropdownItem>
                   <DropdownItem onClick={() => navigate('/my-log/documents')}>

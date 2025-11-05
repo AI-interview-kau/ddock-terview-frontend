@@ -6,14 +6,17 @@ import Button from '../../components/common/Button';
 import iconInterview from '../../assets/icons/icon_interview.png';
 import starIcon from '../../assets/icons/Star (2).png';
 import ddocks2 from '../../assets/icons/ddocks2.png';
+import { createInterviewSession } from '../../api/interviewService';
 
 const InterviewPrepare = () => {
   const navigate = useNavigate();
+  const DOCUMENTS_STORAGE_KEY = 'ddock_my_documents';
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSavedDocsModal, setShowSavedDocsModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [assignmentStage, setAssignmentStage] = useState(0); // 0: 없음, 1: 면접관 배정 중, 2: 준비 완료
+  const [savedDocuments, setSavedDocuments] = useState([]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -33,15 +36,29 @@ const InterviewPrepare = () => {
     }
   }, [assignmentStage]);
 
-  const confirmUpload = () => {
+  const confirmUpload = async () => {
     setShowUploadModal(false);
     setIsLoading(true);
-    // AI 분석 시뮬레이션
-    setTimeout(() => {
+
+    try {
+      // API 호출: 자소서 기반 면접 세션 생성
+      const sessionData = await createInterviewSession('RESUME-BASED');
+      console.log('Resume-based session created:', sessionData);
+
+      // 세션 정보를 localStorage에 저장
+      localStorage.setItem('currentSession', JSON.stringify(sessionData));
+
+      // AI 분석 시뮬레이션
+      setTimeout(() => {
+        setIsLoading(false);
+        // 면접관 배정 단계로 전환
+        setAssignmentStage(1);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to create session:', error);
       setIsLoading(false);
-      // 면접관 배정 단계로 전환
-      setAssignmentStage(1);
-    }, 2000);
+      alert('면접 세션 생성에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   const handleStartInterview = () => {
@@ -53,20 +70,63 @@ const InterviewPrepare = () => {
   };
 
   const handleSavedDocuments = () => {
-    // 저장된 자소서가 있는지 확인
-    const hasSavedDocs = false; // 임시
+    // localStorage에서 저장된 자소서 가져오기
+    try {
+      const savedDocs = localStorage.getItem(DOCUMENTS_STORAGE_KEY);
+      const docs = savedDocs ? JSON.parse(savedDocs) : [];
 
-    if (hasSavedDocs) {
-      // 있으면 자소서 선택 모달
-      setShowSavedDocsModal(true);
-    } else {
-      // 없으면 안내 메시지
-      alert('저장된 자소서가 없습니다.');
+      if (docs.length > 0) {
+        setSavedDocuments(docs);
+        setShowSavedDocsModal(true);
+      } else {
+        alert('저장된 자소서가 없습니다. 자소서 보관함에서 먼저 자소서를 업로드해주세요.');
+      }
+    } catch (error) {
+      console.error('Failed to load documents:', error);
+      alert('저장된 자소서를 불러오는데 실패했습니다.');
     }
   };
 
-  const handleStartWithoutDoc = () => {
-    navigate('/interview/question-selection');
+  const handleDocumentSelect = async (doc) => {
+    setShowSavedDocsModal(false);
+    setUploadedFile({ name: doc.name });
+    setIsLoading(true);
+
+    try {
+      // API 호출: 자소서 기반 면접 세션 생성
+      const sessionData = await createInterviewSession('RESUME-BASED');
+      console.log('Resume-based session created:', sessionData);
+
+      // 세션 정보를 localStorage에 저장
+      localStorage.setItem('currentSession', JSON.stringify(sessionData));
+
+      // AI 분석 시뮬레이션
+      setTimeout(() => {
+        setIsLoading(false);
+        setAssignmentStage(1);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      setIsLoading(false);
+      alert('면접 세션 생성에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  const handleStartWithoutDoc = async () => {
+    try {
+      // API 호출: 맞춤형 면접 세션 생성
+      const sessionData = await createInterviewSession('CUSTOMIZED');
+      console.log('Session created:', sessionData);
+
+      // 세션 정보를 localStorage에 저장
+      localStorage.setItem('currentSession', JSON.stringify(sessionData));
+
+      // 질문 선택 페이지로 이동
+      navigate('/interview/question-selection');
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      alert('면접 세션 생성에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   return (
@@ -185,6 +245,35 @@ const InterviewPrepare = () => {
                 <img src={ddocks2} alt="Interview Icon" />
               </LoadingIcon>
             </ModalContent>
+          </Modal>
+        )}
+
+        {/* 저장된 자소서 선택 모달 */}
+        {showSavedDocsModal && (
+          <Modal>
+            <ModalOverlay onClick={() => setShowSavedDocsModal(false)} />
+            <SavedDocsModalContent>
+              <ModalTitle>저장된 자소서 선택</ModalTitle>
+              <DocumentsList>
+                {savedDocuments.map((doc) => (
+                  <DocumentItem key={doc.id} onClick={() => handleDocumentSelect(doc)}>
+                    <DocumentIcon>📄</DocumentIcon>
+                    <DocumentInfo>
+                      <DocumentName>{doc.name}</DocumentName>
+                      <DocumentDate>업로드: {doc.uploadDate}</DocumentDate>
+                    </DocumentInfo>
+                  </DocumentItem>
+                ))}
+              </DocumentsList>
+              <ModalButtons>
+                <ModalButton
+                  $variant="outline"
+                  onClick={() => setShowSavedDocsModal(false)}
+                >
+                  취소
+                </ModalButton>
+              </ModalButtons>
+            </SavedDocsModalContent>
           </Modal>
         )}
 
@@ -711,6 +800,70 @@ const AssignmentStartButton = styled.button`
     transform: translateY(-2px);
     box-shadow: ${({ theme }) => theme.shadows.md};
   }
+`;
+
+// Saved Documents Modal styles
+const SavedDocsModalContent = styled.div`
+  position: relative;
+  background-color: white;
+  border-radius: ${({ theme }) => theme.borderRadius['2xl']};
+  padding: ${({ theme }) => theme.spacing['4xl']};
+  max-width: 600px;
+  width: 90%;
+  max-height: 70vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.xl};
+  box-shadow: ${({ theme }) => theme.shadows.xl};
+  z-index: 2;
+`;
+
+const DocumentsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const DocumentItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.lg};
+  background-color: ${({ theme }) => theme.colors.gray[50]};
+  border: 2px solid ${({ theme }) => theme.colors.gray[200]};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.fast};
+
+  &:hover {
+    background-color: white;
+    border-color: #9B8FF5;
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.md};
+  }
+`;
+
+const DocumentIcon = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size['3xl']};
+`;
+
+const DocumentInfo = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.xs};
+`;
+
+const DocumentName = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  color: ${({ theme }) => theme.colors.text.dark};
+`;
+
+const DocumentDate = styled.div`
+  font-size: ${({ theme }) => theme.fonts.size.sm};
+  color: ${({ theme }) => theme.colors.gray[600]};
 `;
 
 export default InterviewPrepare;

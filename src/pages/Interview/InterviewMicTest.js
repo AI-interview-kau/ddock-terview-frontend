@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../../components/common/Layout';
 import ddocksWithMic from '../../assets/icons/ddocks with mic.png';
@@ -16,6 +16,8 @@ const INTERVIEWER_TYPES = {
 
 const InterviewMicTest = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedQuestions = location.state?.selectedQuestions || [];
   const videoRef = useRef(null);
   const [stream, setStream] = useState(null);
   const [interviewerType, setInterviewerType] = useState('calm');
@@ -124,8 +126,10 @@ const InterviewMicTest = () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
-      // 면접 준비 화면으로 이동
-      navigate('/interview/ready');
+      // 면접 준비 화면으로 이동 (선택한 질문들 전달)
+      navigate('/interview/ready', {
+        state: { selectedQuestions }
+      });
     }
   };
 
