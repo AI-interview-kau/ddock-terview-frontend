@@ -302,6 +302,7 @@ const KakaoIconWrapper = styled.div`
   svg {
     width: 56px !important;
     height: 56px !important;
+    opacity: 0.3;
   }
 `;
 
@@ -314,6 +315,7 @@ const GoogleIconWrapper = styled.div`
     width: 56px !important;
     height: 56px !important;
     transform: scale(1.5) translate(0.5px, 1.5px);
+    opacity: 0.3;
   }
 `;
 
@@ -326,6 +328,7 @@ const AppleIconWrapper = styled.div`
     width: 56px !important;
     height: 56px !important;
     transform: scale(1.5) translate(0.5px, 1.5px);
+    opacity: 0.3;
   }
 `;
 

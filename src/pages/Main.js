@@ -27,8 +27,7 @@ import chainLink from '../assets/icons/chain-link.png';
 import donutIcon from '../assets/icons/donut.png';
 import signUpIcon from '../assets/icons/sign up.png';
 import loginIcon from '../assets/icons/login.png';
-import ticketIcon from '../assets/icons/ticket.png';
-
+import ticketIcon from '../assets/icons/lightPurpleTicket.png';
 const Main = () => {
   const navigate = useNavigate();
 
@@ -562,8 +561,8 @@ const PlanCard = styled.div.attrs({ className: 'plan-card' })`
 `;
 
 const PlanIcon = styled.img.attrs({ className: 'plan-icon' })`
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 250px;
   object-fit: contain;
 `;
 
