@@ -379,8 +379,8 @@ const DeleteButton = styled.button`
 
 const FloatingCharacter = styled.img`
   position: absolute;
-  right: 20px;
-  bottom: 20px;
+  right: 0px;
+  bottom: 0px;
   width: 320px;
   height: 320px;
   object-fit: contain;
