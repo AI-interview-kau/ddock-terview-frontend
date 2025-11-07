@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
 import iconInterview from '../../assets/icons/icon_interview.png';
 import ddocks2 from '../../assets/icons/ddocks2.png';
-import { getQuestionList, submitSelectedQuestions, createQuestion, deleteQuestion, saveQuestion, unsaveQuestion } from '../../api/interviewService';
+import { getQuestionList, submitSelectedQuestions, createQuestion, deleteQuestion, saveQuestion, unsaveQuestion, getSavedQuestions } from '../../api/interviewService';
 
 const QuestionSelection = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('PERSONALITY');
-  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [selectedQuestionsForInterview, setSelectedQuestionsForInterview] = useState([]); // 체크박스로 선택한 질문들
   const [assignmentStage, setAssignmentStage] = useState(0); // 0: 없음, 1: 면접관 배정 중, 2: 준비 완료
   const [questions, setQuestions] = useState({
     PERSONALITY: [],
@@ -27,16 +29,61 @@ const QuestionSelection = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
+        setIsLoading(true);
+
+        // 1. 전체 질문 목록 가져오기
         const data = await getQuestionList();
         console.log('Questions loaded:', data);
 
+        const personalityItems = data.categories?.PERSONALITY?.items || [];
+        const techItems = data.categories?.TECH?.items || [];
+        const mineItems = data.categories?.MINE?.items || [];
+
+        // 2. 찜한 질문 목록 별도로 가져오기
+        let savedQuestionsList = [];
+        let savedIds = new Set();
+        let savedContents = new Set();
+
+        try {
+          const savedData = await getSavedQuestions();
+          console.log('Saved questions loaded:', savedData);
+
+          // API 응답: { "contents": ["질문1", "질문2", ...] }
+          const savedContentArray = savedData?.contents || [];
+
+          // 찜한 질문 내용 Set 생성
+          savedContents = new Set(savedContentArray);
+
+          // 전체 질문 목록에서 찜한 질문들 찾기 (내용으로 매칭)
+          const allQuestions = [...personalityItems, ...techItems, ...mineItems];
+
+          savedQuestionsList = allQuestions.filter(q =>
+            savedContents.has(q.content)
+          );
+
+          // 찜한 질문 ID Set 생성
+          savedIds = new Set(
+            savedQuestionsList.map(q => q.bqId || q.bq_id).filter(id => id != null)
+          );
+
+          console.log('Saved contents:', Array.from(savedContents));
+          console.log('Matched saved questions:', savedQuestionsList);
+
+        } catch (error) {
+          console.error('Failed to load saved questions:', error);
+        }
+
+        setSavedQuestionIds(savedIds);
+
         // API 응답을 state에 저장
         setQuestions({
-          PERSONALITY: data.categories?.PERSONALITY?.items || [],
-          TECH: data.categories?.TECH?.items || [],
-          MINE: data.categories?.MINE?.items || [],
-          SAVED: [], // 찜한 질문은 별도 관리
+          PERSONALITY: personalityItems,
+          TECH: techItems,
+          MINE: mineItems,
+          SAVED: savedQuestionsList,
         });
+
+        console.log('Saved question IDs:', Array.from(savedIds));
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to load questions:', error);
@@ -70,17 +117,17 @@ const QuestionSelection = () => {
     }
   }, [assignmentStage]);
 
-  const toggleQuestionSelection = (question) => {
-    if (selectedQuestions.includes(question)) {
-      setSelectedQuestions(selectedQuestions.filter((q) => q !== question));
+  const toggleQuestionSelection = (questionContent) => {
+    if (selectedQuestionsForInterview.includes(questionContent)) {
+      setSelectedQuestionsForInterview(selectedQuestionsForInterview.filter((q) => q !== questionContent));
     } else {
-      setSelectedQuestions([...selectedQuestions, question]);
+      setSelectedQuestionsForInterview([...selectedQuestionsForInterview, questionContent]);
     }
   };
 
   const handleStartInterview = async () => {
-    if (selectedQuestions.length === 0) {
-      alert('최소 1개 이상의 질문을 선택해주세요.');
+    if (selectedQuestionsForInterview.length === 0) {
+      toast.warning('최소 1개 이상의 질문을 선택해주세요.');
       return;
     }
 
@@ -88,7 +135,7 @@ const QuestionSelection = () => {
       // localStorage에서 현재 세션 정보 가져오기
       const currentSession = localStorage.getItem('currentSession');
       if (!currentSession) {
-        alert('면접 세션 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+        toast.error('면접 세션 정보를 찾을 수 없습니다. 다시 시도해주세요.');
         navigate('/interview');
         return;
       }
@@ -97,7 +144,7 @@ const QuestionSelection = () => {
       const sessionId = sessionData.session_id || sessionData.sessionId;
 
       // 선택한 질문들을 서버에 전송
-      const response = await submitSelectedQuestions(sessionId, selectedQuestions);
+      const response = await submitSelectedQuestions(sessionId, selectedQuestionsForInterview);
       console.log('Questions submitted successfully:', response);
 
       // 서버 응답을 localStorage에 업데이트
@@ -107,14 +154,14 @@ const QuestionSelection = () => {
       setAssignmentStage(1);
     } catch (error) {
       console.error('Failed to submit questions:', error);
-      alert('질문 등록에 실패했습니다. 다시 시도해주세요.');
+      toast.error('질문 등록에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
   const handleStartInterviewProgress = () => {
     // 선택한 질문들을 camera-test로 전달
     navigate('/interview/camera-test', {
-      state: { selectedQuestions }
+      state: { selectedQuestions: selectedQuestionsForInterview }
     });
   };
 
@@ -124,7 +171,7 @@ const QuestionSelection = () => {
 
   const handleCreateQuestion = async () => {
     if (!newQuestionText.trim()) {
-      alert('질문 내용을 입력해주세요.');
+      toast.warning('질문 내용을 입력해주세요.');
       return;
     }
 
@@ -141,10 +188,10 @@ const QuestionSelection = () => {
 
       // 입력 필드 초기화
       setNewQuestionText('');
-      alert('질문이 성공적으로 생성되었습니다!');
+      toast.success('질문이 성공적으로 생성되었습니다!');
     } catch (error) {
       console.error('Failed to create question:', error);
-      alert('질문 생성에 실패했습니다. 다시 시도해주세요.');
+      toast.error('질문 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsCreatingQuestion(false);
     }
@@ -166,12 +213,12 @@ const QuestionSelection = () => {
       }));
 
       // 선택된 질문 목록에서도 제거
-      setSelectedQuestions(prev => prev.filter(q => q !== questionContent));
+      setSelectedQuestionsForInterview(prev => prev.filter(q => q !== questionContent));
 
-      alert('질문이 성공적으로 삭제되었습니다.');
+      toast.success('질문이 성공적으로 삭제되었습니다.');
     } catch (error) {
       console.error('Failed to delete question:', error);
-      alert('질문 삭제에 실패했습니다. 다시 시도해주세요.');
+      toast.error('질문 삭제에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -179,27 +226,10 @@ const QuestionSelection = () => {
     const questionId = bqId || inqId;
     const isSaved = savedQuestionIds.has(questionId);
 
-    // 사용자 ID 가져오기 (localStorage에서)
-    let userId = null;
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        userId = user.id || user.userId;
-      }
-    } catch (error) {
-      console.error('Failed to get user ID:', error);
-    }
-
-    if (!userId) {
-      alert('사용자 정보를 찾을 수 없습니다.');
-      return;
-    }
-
     try {
       if (isSaved) {
         // 찜 해제
-        await unsaveQuestion({ userId, bqId, inqId });
+        await unsaveQuestion({ bqId, inqId });
         console.log('Question unsaved:', questionId);
 
         // 찜한 질문 ID 집합에서 제거
@@ -209,7 +239,13 @@ const QuestionSelection = () => {
           return newSet;
         });
 
-        alert('질문이 찜 목록에서 제거되었습니다.');
+        // SAVED 카테고리에서도 제거
+        setQuestions(prev => ({
+          ...prev,
+          SAVED: prev.SAVED.filter(q => (q.bqId || q.bq_id) !== questionId),
+        }));
+
+        toast.info('질문이 찜 목록에서 제거되었습니다.');
       } else {
         // 찜 추가
         const result = await saveQuestion({ bqId, inqId });
@@ -218,29 +254,60 @@ const QuestionSelection = () => {
         // 찜한 질문 ID 집합에 추가
         setSavedQuestionIds(prev => new Set([...prev, questionId]));
 
-        alert('질문이 찜 목록에 추가되었습니다!');
+        // SAVED 카테고리에 추가 (현재 질문 찾아서 추가)
+        const allQuestions = [
+          ...questions.PERSONALITY,
+          ...questions.TECH,
+          ...questions.MINE,
+        ];
+        const questionToAdd = allQuestions.find(q => (q.bqId || q.bq_id) === questionId);
+
+        if (questionToAdd) {
+          setQuestions(prev => ({
+            ...prev,
+            SAVED: [...prev.SAVED, questionToAdd],
+          }));
+        }
+
+        toast.success('질문이 찜 목록에 추가되었습니다!');
       }
     } catch (error) {
       console.error('Failed to toggle save question:', error);
       if (error.response?.status === 409) {
-        alert('이미 찜한 질문입니다.');
+        toast.warning('이미 찜한 질문입니다.');
       } else if (error.response?.status === 404) {
-        alert('찜 목록에서 해당 질문을 찾을 수 없습니다.');
+        toast.error('찜 목록에서 해당 질문을 찾을 수 없습니다.');
       } else {
-        alert(`질문 ${isSaved ? '해제' : '찜하기'}에 실패했습니다. 다시 시도해주세요.`);
+        toast.error(`질문 ${isSaved ? '해제' : '찜하기'}에 실패했습니다. 다시 시도해주세요.`);
       }
     }
   };
 
   const getCategoryQuestions = () => {
     if (activeCategory === 'SAVED') {
-      return selectedQuestions;
+      return questions.SAVED || [];
+    }
+    if (activeCategory === 'SELECTED') {
+      // 선택한 질문들을 객체 형태로 변환
+      return selectedQuestionsForInterview.map((content, index) => ({ content, bq_id: `selected_${index}` }));
     }
     return questions[activeCategory] || [];
   };
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <Container>
         <ContentCard>
           {/* 좌측 사이드바 */}
@@ -273,6 +340,12 @@ const QuestionSelection = () => {
               >
                 찜한 질문
               </CategoryItem>
+              <CategoryItem
+                $active={activeCategory === 'SELECTED'}
+                onClick={() => setActiveCategory('SELECTED')}
+              >
+                선택한 질문 ({selectedQuestionsForInterview.length})
+              </CategoryItem>
             </CategoryList>
           </Sidebar>
 
@@ -284,11 +357,14 @@ const QuestionSelection = () => {
                 {activeCategory === 'TECH' && '기술 면접 질문 선택'}
                 {activeCategory === 'MINE' && '내가 만든 질문 선택'}
                 {activeCategory === 'SAVED' && '찜한 질문 모음집'}
+                {activeCategory === 'SELECTED' && '선택한 질문 목록'}
               </ContentTitle>
               <ContentDescription>
                 {activeCategory === 'SAVED'
-                  ? '선택한 질문들이 모여있습니다. 이 질문들로 면접을 시작하세요!'
-                  : '면접에 사용할 질문을 선택해주세요. 선택한 질문은 찜한 질문에 추가됩니다.'}
+                  ? '찜한 질문들을 모아볼 수 있어요!'
+                  : activeCategory === 'SELECTED'
+                  ? `체크박스로 선택한 ${selectedQuestionsForInterview.length}개의 질문입니다. 이 질문들로 면접을 시작하세요!`
+                  : '면접에 사용할 질문을 체크박스로 선택해주세요.'}
               </ContentDescription>
             </ContentHeader>
 
@@ -322,15 +398,18 @@ const QuestionSelection = () => {
               <QuestionGrid>
                 {getCategoryQuestions().map((question) => (
                   <QuestionCard key={question.bq_id || question}>
-                    <Checkbox
-                      type="checkbox"
-                      checked={selectedQuestions.includes(question.content || question)}
-                      onChange={() => toggleQuestionSelection(question.content || question)}
-                    />
+                    {/* 선택한 질문 탭에서는 체크박스 숨김 */}
+                    {activeCategory !== 'SELECTED' && (
+                      <Checkbox
+                        type="checkbox"
+                        checked={selectedQuestionsForInterview.includes(question.content || question)}
+                        onChange={() => toggleQuestionSelection(question.content || question)}
+                      />
+                    )}
                     <QuestionText>{question.content || question}</QuestionText>
 
-                    {/* 찜하기 버튼 (찜한 질문 탭 제외) */}
-                    {activeCategory !== 'SAVED' && question.bq_id && (
+                    {/* 찜하기 버튼 (찜한 질문 탭과 선택한 질문 탭 제외) */}
+                    {activeCategory !== 'SAVED' && activeCategory !== 'SELECTED' && question.bq_id && (
                       <SaveButton
                         onClick={(e) => {
                           e.stopPropagation();
@@ -368,7 +447,7 @@ const QuestionSelection = () => {
 
             <BottomBar>
               <SelectedCount>
-                선택된 질문: {selectedQuestions.length}개
+                선택된 질문: {selectedQuestionsForInterview.length}개
               </SelectedCount>
               <ButtonGroup>
                 <CancelButton onClick={() => navigate('/interview')}>
@@ -404,7 +483,7 @@ const QuestionSelection = () => {
                       지원자의 논리적 허점과 대처 능력을 날카롭게 파고드는 압박 면접관이 배정되었어요.
                     </AssignmentInfoText>
                     <AssignmentInfoHighlight>
-                      총 <Strong>{selectedQuestions.length}개</Strong>의 질문으로 면접 연습을 시작합니다.
+                      총 <Strong>{selectedQuestionsForInterview.length}개</Strong>의 질문으로 면접 연습을 시작합니다.
                     </AssignmentInfoHighlight>
                     <AssignmentInfoText>
                       면접 연습은 약 <Strong>20~30분</Strong> 정도 소요될 예정이에요.

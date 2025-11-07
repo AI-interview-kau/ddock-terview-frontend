@@ -51,8 +51,8 @@ const InterviewFeedback = () => {
     }
   };
 
-  const handleQuestionClick = (questionId) => {
-    navigate(`/interview/feedback/question/${questionId}`);
+  const handleQuestionClick = (inqId) => {
+    navigate(`/my-log/${sessionId}/question/${inqId}`);
   };
 
   if (loading) {
@@ -68,18 +68,22 @@ const InterviewFeedback = () => {
   // API 데이터가 없으면 더미 데이터 사용
   const feedback = feedbackData?.feedback || {
     totalScore: 82,
-    summary: '전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와 자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.',
-    strengths: [
-      '자신감 있는 태도와 명확한 목소리 톤이 인상적이었습니다.',
-      '질문의 의도를 잘 파악하고 논리적으로 답변하려는 노력이 돋보였습니다.',
-    ],
-    improvements: [
-      '일부 질문에서 예시가 부족해 구체성이 떨어졌습니다.',
-      '말의 속도가 조금 빠른 청중이 내용을 따라가기 어려웠을 수 있습니다.',
-    ],
+    generalFeedback: '전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와 자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.',
+    pro: '자신감 있는 태도와 명확한 목소리 톤이 인상적이었습니다. 질문의 의도를 잘 파악하고 논리적으로 답변하려는 노력이 돋보였습니다.',
+    con: '일부 질문에서 예시가 부족해 구체성이 떨어졌습니다. 말의 속도가 조금 빠른 청중이 내용을 따라가기 어려웠을 수 있습니다.',
   };
 
-  const questions = feedbackData?.questions || MOCK_QUESTIONS_DEFAULT;
+  // 백엔드 응답: questions가 문자열 배열로 옴
+  const rawQuestions = feedbackData?.questions || MOCK_QUESTIONS_DEFAULT;
+
+  // 문자열 배열을 객체 배열로 변환 (inqId는 index 사용)
+  const questions = Array.isArray(rawQuestions)
+    ? rawQuestions.map((q, index) =>
+        typeof q === 'string'
+          ? { inqId: index + 1, content: q, isFollowUp: false }
+          : q
+      )
+    : [];
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
@@ -94,27 +98,29 @@ const InterviewFeedback = () => {
               <Score>{feedback.totalScore}점 / 100점</Score>
             </ScoreBox>
 
-            <FeedbackText>
-              {feedback.summary}
-            </FeedbackText>
+            {feedback.generalFeedback && (
+              <FeedbackText>
+                {feedback.generalFeedback}
+              </FeedbackText>
+            )}
 
-            <FeedbackSection>
-              <FeedbackTitle>장점</FeedbackTitle>
-              <FeedbackList>
-                {feedback.strengths.map((strength, index) => (
-                  <FeedbackItem key={index}>{strength}</FeedbackItem>
-                ))}
-              </FeedbackList>
-            </FeedbackSection>
+            {feedback.pro && (
+              <FeedbackSection>
+                <FeedbackTitle>장점</FeedbackTitle>
+                <FeedbackList>
+                  <FeedbackItem>{feedback.pro}</FeedbackItem>
+                </FeedbackList>
+              </FeedbackSection>
+            )}
 
-            <FeedbackSection>
-              <FeedbackTitle>개선점</FeedbackTitle>
-              <FeedbackList>
-                {feedback.improvements.map((improvement, index) => (
-                  <FeedbackItem key={index}>{improvement}</FeedbackItem>
-                ))}
-              </FeedbackList>
-            </FeedbackSection>
+            {feedback.con && (
+              <FeedbackSection>
+                <FeedbackTitle>개선점</FeedbackTitle>
+                <FeedbackList>
+                  <FeedbackItem>{feedback.con}</FeedbackItem>
+                </FeedbackList>
+              </FeedbackSection>
+            )}
           </FeedbackCard>
         </Section>
 
@@ -135,8 +141,8 @@ const InterviewFeedback = () => {
             <QuestionList>
               {questions.map((item, index) => (
                 <QuestionCard
-                  key={item.questionId || index}
-                  onClick={() => handleQuestionClick(item.questionId || index)}
+                  key={item.inqId || index}
+                  onClick={() => handleQuestionClick(item.inqId || index)}
                 >
                   {item.isFollowUp && (
                     <FollowUpRibbon>
@@ -146,13 +152,13 @@ const InterviewFeedback = () => {
                   <HeartButton
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleSaveQuestion(item.questionId || index);
+                      toggleSaveQuestion(item.inqId || index);
                     }}
-                    $saved={savedQuestions.includes(item.questionId || index)}
+                    $saved={savedQuestions.includes(item.inqId || index)}
                   >
                     <FiHeart />
                   </HeartButton>
-                  <QuestionText>{item.question}</QuestionText>
+                  <QuestionText>{item.content || item.question}</QuestionText>
                 </QuestionCard>
               ))}
             </QuestionList>

@@ -8,11 +8,17 @@ const InterviewReady = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedQuestions = location.state?.selectedQuestions || [];
+  const isAIMode = location.state?.isAIMode || false;
+  const sessionData = location.state?.sessionData || null;
 
   const handleStart = () => {
-    // 면접 진행 화면으로 이동 (선택한 질문들 전달)
+    // 면접 진행 화면으로 이동 (AI 모드 정보 전달)
     navigate('/interview/progress', {
-      state: { selectedQuestions }
+      state: {
+        selectedQuestions,
+        isAIMode,
+        sessionData
+      }
     });
   };
 

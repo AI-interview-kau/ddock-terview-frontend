@@ -10,10 +10,28 @@ import apiClient from './axios';
  */
 export const getMyLog = async () => {
   try {
+    console.log('🚀 [API Request] GET /mylog');
+
     const response = await apiClient.get('/mylog');
+
+    console.log('✅ [API Response] My log retrieved successfully');
+    console.log('📦 Response Data:', response.data);
+    console.log('📊 Status Code:', response.status);
+    console.log('📈 Growth Report Labels:', response.data?.growthReport?.labels);
+    console.log('📈 Growth Report Scores:', response.data?.growthReport?.scores);
+    console.log('📋 Sessions Count:', response.data?.sessions?.length);
+
     return response.data;
   } catch (error) {
-    console.error('Failed to get my log:', error);
+    console.error('❌ [API Error] Failed to get my log');
+    console.error('📋 Error Details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
     throw error;
   }
 };
@@ -44,10 +62,28 @@ export const getInterviewHistory = async (params = { page: 0, size: 20 }) => {
  */
 export const getInterviewDetail = async (sessionId) => {
   try {
+    console.log('🚀 [API Request] GET /mylog/' + sessionId);
+
     const response = await apiClient.get(`/mylog/${sessionId}`);
+
+    console.log('✅ [API Response] Interview detail retrieved successfully');
+    console.log('📦 Response Data:', response.data);
+    console.log('📊 Status Code:', response.status);
+    console.log('🎯 Session ID:', sessionId);
+    console.log('📝 Questions Count:', response.data?.questions?.length);
+
     return response.data;
   } catch (error) {
-    console.error('Failed to get interview detail:', error);
+    console.error('❌ [API Error] Failed to get interview detail');
+    console.error('📋 Error Details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+      sessionId: sessionId,
+    });
     throw error;
   }
 };
@@ -172,14 +208,32 @@ export const markNotificationAsRead = async (notificationId) => {
  */
 export const updateUserInfo = async (userData) => {
   try {
-    const response = await apiClient.put('/user', {
+    const requestBody = {
       name: userData.name,
       depart: userData.depart,
       status: userData.status,
-    });
+    };
+
+    console.log('🚀 [API Request] PUT /user');
+    console.log('📝 Request Body:', requestBody);
+
+    const response = await apiClient.put('/user', requestBody);
+
+    console.log('✅ [API Response] User info updated successfully');
+    console.log('📦 Response Data:', response.data);
+    console.log('📊 Status Code:', response.status);
+
     return response.data;
   } catch (error) {
-    console.error('Failed to update user info:', error);
+    console.error('❌ [API Error] Failed to update user info');
+    console.error('📋 Error Details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
     throw error;
   }
 };
