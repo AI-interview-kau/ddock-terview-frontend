@@ -5,7 +5,7 @@ import axios from 'axios';
 // 프로덕션: 실제 서버 URL 사용
 const BASE_URL = process.env.NODE_ENV === 'development'
   ? '/api'  // 개발 환경에서는 프록시 사용
-  : (process.env.REACT_APP_API_URL || 'http://ddock-terview.ap-northeast-2.elasticbeanstalk.com');
+  : (process.env.REACT_APP_API_URL || 'https://ddock-terview.ap-northeast-2.elasticbeanstalk.com');
 
 // axios 인스턴스 생성
 const apiClient = axios.create({
