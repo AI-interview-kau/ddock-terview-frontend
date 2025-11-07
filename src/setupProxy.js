@@ -1,11 +1,15 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
+  // 환경변수에서 API URL 가져오기
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+  const AI_SERVER_URL = process.env.REACT_APP_AI_SERVER_URL;
+
   // 기존 백엔드 API 프록시
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://ddock-terview.ap-northeast-2.elasticbeanstalk.com',
+      target: BACKEND_URL,
       changeOrigin: true,
       pathRewrite: {
         '^/api': '', // /api 제거
@@ -20,7 +24,7 @@ module.exports = function(app) {
   app.use(
     '/ai-api',
     createProxyMiddleware({
-      target: 'https://ddockterview-api-299282571203.us-central1.run.app',
+      target: AI_SERVER_URL,
       changeOrigin: true,
       secure: true, // HTTPS 인증서 검증
       pathRewrite: {
