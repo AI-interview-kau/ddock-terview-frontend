@@ -14,9 +14,10 @@ export const createInterviewSession = async (interviewType) => {
     const response = await apiClient.post('/session', {
       interviewType: interviewType,
     });
+
     return response.data;
   } catch (error) {
-    console.error('Failed to create interview session:', error);
+    console.error('❌ 면접 세션 생성 실패:', error.message);
     throw error;
   }
 };
@@ -74,9 +75,10 @@ export const createQuestion = async (content) => {
     const response = await apiClient.post('/questions', {
       content: content,
     });
+
     return response.data;
   } catch (error) {
-    console.error('Failed to create question:', error);
+    console.error('❌ 질문 생성 실패:', error.message);
     throw error;
   }
 };
@@ -109,9 +111,10 @@ export const saveQuestion = async ({ bqId = null, inqId = null }) => {
       bqId: bqId,
       inqId: inqId,
     });
+
     return response.data;
   } catch (error) {
-    console.error('Failed to save question:', error);
+    console.error('❌ 질문 찜하기 실패:', error.message);
     throw error;
   }
 };
@@ -119,22 +122,22 @@ export const saveQuestion = async ({ bqId = null, inqId = null }) => {
 /**
  * 질문 찜 취소
  * @param {Object} params - 찜 해제할 질문 정보
- * @param {string} params.userId - 사용자 ID
  * @param {number|null} params.bqId - BaseQuestion ID
  * @param {number|null} params.inqId - InterviewQuestion ID
  * @returns {Promise} - 찜 취소 결과
  */
-export const unsaveQuestion = async ({ userId, bqId = null, inqId = null }) => {
+export const unsaveQuestion = async ({ bqId = null, inqId = null }) => {
   try {
-    const params = new URLSearchParams();
-    params.append('userId', userId);
-    if (bqId) params.append('bqId', bqId);
-    if (inqId) params.append('inqId', inqId);
+    const response = await apiClient.delete('/savedQ', {
+      data: {
+        bqId: bqId,
+        inqId: inqId,
+      }
+    });
 
-    const response = await apiClient.delete(`/savedQ?${params.toString()}`);
     return response.data;
   } catch (error) {
-    console.error('Failed to unsave question:', error);
+    console.error('❌ 질문 찜 취소 실패:', error.message);
     throw error;
   }
 };
@@ -145,7 +148,7 @@ export const unsaveQuestion = async ({ userId, bqId = null, inqId = null }) => {
  */
 export const getSavedQuestions = async () => {
   try {
-    const response = await apiClient.get('/question/saved');
+    const response = await apiClient.get('/savedQ');
     return response.data;
   } catch (error) {
     console.error('Failed to get saved questions:', error);
@@ -307,9 +310,14 @@ export const cancelInterview = async (sessionId) => {
  */
 export const getQuestionNote = async (questionId) => {
   try {
-    const response = await apiClient.get(`/note/${questionId}`);
+    const encodedId = encodeURIComponent(questionId);
+    const response = await apiClient.get(`/note/${encodedId}`);
     return response.data;
   } catch (error) {
+    // 메모가 없는 경우(404, 500)는 조용히 null 반환
+    if (error.response?.status === 404 || error.response?.status === 500) {
+      return null;
+    }
     console.error('Failed to get question note:', error);
     throw error;
   }
@@ -323,7 +331,8 @@ export const getQuestionNote = async (questionId) => {
  */
 export const updateQuestionNote = async (questionId, content) => {
   try {
-    const response = await apiClient.put(`/note/${questionId}`, {
+    const encodedId = encodeURIComponent(questionId);
+    const response = await apiClient.put(`/note/${encodedId}`, {
       content: content,
     });
     return response.data;
@@ -344,7 +353,7 @@ export const getQuestionFeedback = async (sessionId, inqId) => {
     const response = await apiClient.get(`/mylog/${sessionId}/question/${inqId}`);
     return response.data;
   } catch (error) {
-    console.error('Failed to get question feedback:', error);
+    console.error('❌ 질문 피드백 조회 실패:', error.message);
     throw error;
   }
 };

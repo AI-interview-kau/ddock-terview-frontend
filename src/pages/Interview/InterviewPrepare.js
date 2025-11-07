@@ -7,6 +7,7 @@ import iconInterview from '../../assets/icons/icon_interview.png';
 import starIcon from '../../assets/icons/Star (2).png';
 import ddocks2 from '../../assets/icons/ddocks2.png';
 import { createInterviewSession } from '../../api/interviewService';
+import { generateQuestionsFromResume } from '../../api/questionGenerationService';
 
 const InterviewPrepare = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const InterviewPrepare = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [assignmentStage, setAssignmentStage] = useState(0); // 0: 없음, 1: 면접관 배정 중, 2: 준비 완료
   const [savedDocuments, setSavedDocuments] = useState([]);
+  const [questionCount, setQuestionCount] = useState(3); // AI 생성 질문 개수
+  const [isUploading, setIsUploading] = useState(false); // 중복 업로드 방지
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -37,32 +40,60 @@ const InterviewPrepare = () => {
   }, [assignmentStage]);
 
   const confirmUpload = async () => {
+    // 중복 업로드 방지
+    if (isUploading) {
+      console.warn('⚠️ 이미 업로드 중입니다. 중복 요청을 무시합니다.');
+      return;
+    }
+
+    setIsUploading(true);
     setShowUploadModal(false);
     setIsLoading(true);
 
     try {
-      // API 호출: 자소서 기반 면접 세션 생성
-      const sessionData = await createInterviewSession('RESUME-BASED');
-      console.log('Resume-based session created:', sessionData);
+      let aiGeneratedQuestions = [];
 
-      // 세션 정보를 localStorage에 저장
-      localStorage.setItem('currentSession', JSON.stringify(sessionData));
+      // AI 서버로 PDF 전송하여 질문 생성
+      try {
+        console.log('📤 Uploading PDF to AI server for question generation...');
+        const aiResponse = await generateQuestionsFromResume(uploadedFile);
+        console.log('✅ AI generated questions:', aiResponse);
 
-      // AI 분석 시뮬레이션
+        // AI 생성 질문 개수 저장
+        setQuestionCount(aiResponse.question_count || 3);
+      } catch (aiError) {
+        console.warn('⚠️ AI 질문 생성 실패:', aiError.message);
+        setQuestionCount(3);
+        alert('질문 생성에 실패했습니다. 다시 시도해주세요.');
+        setIsLoading(false);
+        setIsUploading(false);
+        return;
+      }
+
+      // 면접관 배정 단계로 전환 (AI 세션은 면접 시작 시 생성됨)
       setTimeout(() => {
         setIsLoading(false);
-        // 면접관 배정 단계로 전환
+        setIsUploading(false);
         setAssignmentStage(1);
-      }, 2000);
+      }, 1000);
     } catch (error) {
-      console.error('Failed to create session:', error);
+      console.error('❌ Failed to process resume:', error);
       setIsLoading(false);
-      alert('면접 세션 생성에 실패했습니다. 다시 시도해주세요.');
+      setIsUploading(false);
+      alert('면접 세션 생성에 실패했습니다. 다시 시도해주세요.\n에러: ' + error.message);
     }
   };
 
   const handleStartInterview = () => {
-    navigate('/interview/camera-test');
+    // AI 면접 모드로 시작 (질문 생성 완료 후 면접 진행)
+    const currentSession = JSON.parse(localStorage.getItem('currentSession') || '{}');
+
+    navigate('/interview/camera-test', {
+      state: {
+        isAIMode: true, // AI 모드 활성화
+        sessionData: currentSession
+      }
+    });
   };
 
   const handleCloseAssignment = () => {
@@ -92,24 +123,12 @@ const InterviewPrepare = () => {
     setUploadedFile({ name: doc.name });
     setIsLoading(true);
 
-    try {
-      // API 호출: 자소서 기반 면접 세션 생성
-      const sessionData = await createInterviewSession('RESUME-BASED');
-      console.log('Resume-based session created:', sessionData);
-
-      // 세션 정보를 localStorage에 저장
-      localStorage.setItem('currentSession', JSON.stringify(sessionData));
-
-      // AI 분석 시뮬레이션
-      setTimeout(() => {
-        setIsLoading(false);
-        setAssignmentStage(1);
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to create session:', error);
+    // 저장된 자소서의 경우 AI 질문 생성 없이 바로 진행
+    // (이미 질문이 생성되어 있다고 가정)
+    setTimeout(() => {
       setIsLoading(false);
-      alert('면접 세션 생성에 실패했습니다. 다시 시도해주세요.');
-    }
+      setAssignmentStage(1);
+    }, 1000);
   };
 
   const handleStartWithoutDoc = async () => {
@@ -166,12 +185,12 @@ const InterviewPrepare = () => {
                 <input
                   id="file-upload"
                   type="file"
-                  accept=".pdf,.docx,.doc"
+                  accept=".pdf"
                   onChange={handleFileUpload}
                   style={{ display: 'none' }}
                 />
               </PrimaryButton>
-              <FileFormat>(PDF, DOCX 등, 5MB)</FileFormat>
+              <FileFormat>(PDF만 가능, 최대 5MB)</FileFormat>
 
               <SecondaryButton onClick={handleSavedDocuments}>
                 저장된 자소서 선택
@@ -221,12 +240,13 @@ const InterviewPrepare = () => {
                 준비가 되셨나요?
               </ModalText>
               <ModalButtons>
-                <ModalButton onClick={confirmUpload}>
-                  파일 업로드
+                <ModalButton onClick={confirmUpload} disabled={isUploading}>
+                  {isUploading ? '업로드 중...' : '파일 업로드'}
                 </ModalButton>
                 <ModalButton
                   $variant="outline"
                   onClick={() => setShowUploadModal(false)}
+                  disabled={isUploading}
                 >
                   다시 선택하기
                 </ModalButton>
@@ -301,10 +321,10 @@ const InterviewPrepare = () => {
                       지원자의 논리적 허점과 대처 능력을 날카롭게 파고드는 압박 면접관이 배정되었어요.
                     </AssignmentInfoText>
                     <AssignmentInfoHighlight>
-                      총 <Strong>3개</Strong>의 질문으로 면접 연습을 시작합니다.
+                      총 <Strong>{questionCount}개</Strong>의 질문으로 면접 연습을 시작합니다.
                     </AssignmentInfoHighlight>
                     <AssignmentInfoText>
-                      면접 연습은 약 <Strong>2~3분</Strong> 정도 소요될 예정이에요.
+                      면접 연습은 약 <Strong>30분</Strong> 정도 소요될 예정이에요.
                     </AssignmentInfoText>
                     <AssignmentInfoText>이 면접의 끝에서, 당신은 한 단계 더 성장해 있을 겁니다 !</AssignmentInfoText>
                   </AssignmentInfoSection>

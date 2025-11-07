@@ -10,6 +10,7 @@ import dryInterviewer from '../../assets/icons/건조형 면접관.png';
 import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
 import confettiGif from '../../images/폭죽.gif';
 import ddocksTail from '../../assets/icons/ddocks_tail.png';
+import { startInterview, uploadAnswer, getInterviewStatus, playAudioFromBase64 } from '../../api/aiInterviewService';
 
 const FOLLOW_UP_QUESTIONS = {
   0: '그 강점을 실제로 활용했던 경험이 있나요?',
@@ -20,19 +21,36 @@ const FOLLOW_UP_QUESTIONS = {
 const InterviewProgress = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  // 선택한 질문들을 받아오기 (없으면 빈 배열)
+
+  // AI 면접 모드 체크 (기본값: false - 질문 저장소 모드)
+  const isAIMode = location.state?.isAIMode || false;
   const selectedQuestions = location.state?.selectedQuestions || [];
+
+  // AI 면접 상태
+  const [sessionId, setSessionId] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [questionId, setQuestionId] = useState(null);
+  const [isTailQuestion, setIsTailQuestion] = useState(false);
+  const [remainingSlots, setRemainingSlots] = useState(null); // 서버에서 받은 값으로 설정됨
+  const [interviewStatus, setInterviewStatus] = useState('continue'); // 'continue' | 'completed'
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [phase, setPhase] = useState('reading'); // 'reading', 'answering', 'loading'
   const [timeLeft, setTimeLeft] = useState(10); // 질문 확인 시간 10초
-  const [totalAnswerTime, setTotalAnswerTime] = useState(180); // 전체 답변 시간 3분
+  const [totalAnswerTime, setTotalAnswerTime] = useState(1800); // 전체 답변 시간 30분 (1800초)
   const [interviewerType, setInterviewerType] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showFollowUpAlert, setShowFollowUpAlert] = useState(false);
   const [isFollowUpQuestion, setIsFollowUpQuestion] = useState(false);
   const [askedQuestions, setAskedQuestions] = useState([]); // 실제로 나온 질문들을 저장 (형식: { question: string, isFollowUp: boolean })
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false); // 음성 재생 중 여부
+  const currentAudioRef = useRef(null); // 현재 재생 중인 Audio 객체
+
+  // 비디오 녹화 관련
   const videoRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const isInterviewStartedRef = useRef(false); // 중복 호출 방지
 
   const READING_TIME = 10; // 질문 확인 시간
 
@@ -42,24 +60,139 @@ const InterviewProgress = () => {
     dry: dryInterviewer,
   };
 
+  // 음성 재생 함수
+  const playQuestionAudio = async (audioData) => {
+    if (!audioData) {
+      console.log('⚠️ 음성 데이터 없음 (텍스트만 표시)');
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      console.log('🔊 질문 음성 재생 시작...');
+
+      const audio = await playAudioFromBase64(audioData);
+      currentAudioRef.current = audio;
+
+      // 음성 재생 완료 시
+      audio.onended = () => {
+        console.log('✅ 음성 재생 완료 - 카운트다운 시작');
+        setIsPlayingAudio(false);
+        currentAudioRef.current = null;
+      };
+
+      // 음성 재생 에러 시
+      audio.onerror = () => {
+        console.warn('⚠️ 음성 재생 실패 - 텍스트만 표시하고 카운트다운 시작');
+        setIsPlayingAudio(false);
+        currentAudioRef.current = null;
+      };
+    } catch (error) {
+      console.error('❌ 음성 재생 에러:', error);
+      setIsPlayingAudio(false);
+      currentAudioRef.current = null;
+    }
+  };
+
+  // AI 면접 시작 (AI 모드일 경우)
+  useEffect(() => {
+    if (isAIMode && !isInterviewStartedRef.current) {
+      isInterviewStartedRef.current = true; // 즉시 플래그 설정하여 중복 호출 방지
+
+      const initAIInterview = async () => {
+        try {
+          setIsLoading(true);
+          console.log('🎬 면접 시작 요청 중...');
+
+          // sessionId를 localStorage에서 가져오기
+          const storedSessionData = localStorage.getItem('currentSession');
+          let sessionIdToUse = null;
+
+          if (storedSessionData) {
+            try {
+              const sessionData = JSON.parse(storedSessionData);
+              sessionIdToUse = sessionData.sessionId;
+              console.log('📦 localStorage에서 sessionId 가져옴:', sessionIdToUse);
+            } catch (e) {
+              console.error('❌ sessionId 파싱 실패:', e);
+            }
+          }
+
+          const result = await startInterview(sessionIdToUse);
+
+          // 면접 세션 정보 저장
+          setSessionId(result.sessionId);
+          setCurrentQuestion(result.question);
+          setQuestionId(result.questionId);
+          setIsTailQuestion(result.isTailQuestion);
+          setRemainingSlots(result.remainingSlots);
+          setInterviewStatus(result.status);
+
+          setIsLoading(false);
+
+          // 꼬리질문이면 알림 표시
+          if (result.isTailQuestion) {
+            setShowFollowUpAlert(true);
+            setTimeout(() => {
+              setShowFollowUpAlert(false);
+              // 알림 후 음성 재생
+              playQuestionAudio(result.audioData);
+            }, 2000);
+          } else {
+            // 일반 질문이면 바로 음성 재생
+            playQuestionAudio(result.audioData);
+          }
+        } catch (error) {
+          console.error('❌ 면접 시작 실패:', error);
+          alert('면접을 시작할 수 없습니다. 다시 시도해주세요.');
+          isInterviewStartedRef.current = false; // 실패 시 플래그 리셋
+          navigate('/interview');
+        }
+      };
+
+      initAIInterview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAIMode]);
+
   // 랜덤 면접관 선택 및 카메라 초기화
   useEffect(() => {
     const types = ['calm', 'pressure', 'dry'];
     const randomType = types[Math.floor(Math.random() * types.length)];
     setInterviewerType(randomType);
 
-    // 사용자 카메라 접근
+    // 사용자 카메라 및 오디오 접근 (WebM 녹화용)
     const initCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: false
+          audio: true // 오디오 포함
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+
+        // MediaRecorder 초기화 (WebM 형식)
+        const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+
+        // WebM 지원 여부 확인
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          console.warn('WebM not supported, using default format');
+          mediaRecorderRef.current = new MediaRecorder(stream);
+        } else {
+          mediaRecorderRef.current = new MediaRecorder(stream, options);
+        }
+
+        // 녹화 데이터 수집
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            recordedChunksRef.current.push(event.data);
+          }
+        };
+
       } catch (err) {
-        console.error('카메라 접근 오류:', err);
+        console.error('❌ 카메라/오디오 접근 오류:', err);
+        alert('카메라와 마이크 접근 권한이 필요합니다.');
       }
     };
 
@@ -72,11 +205,35 @@ const InterviewProgress = () => {
         const tracks = stream.getTracks();
         tracks.forEach(track => track.stop());
       }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, []);
 
+  // 비디오 녹화 시작 (답변 단계 진입 시 - 질문 확인 10초 후)
+  useEffect(() => {
+    if (phase === 'answering' && mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
+      // 이전 녹화 데이터 초기화
+      recordedChunksRef.current = [];
+
+      // 녹화 시작
+      try {
+        mediaRecorderRef.current.start();
+        console.log('🎥 답변 녹화 시작');
+      } catch (error) {
+        console.error('❌ 녹화 시작 실패:', error);
+      }
+    }
+  }, [phase]);
+
   // 타이머 관리
   useEffect(() => {
+    // 로딩 중이거나 꼬리질문 알림이 표시 중이거나 음성 재생 중일 때는 타이머 중지
+    if (isLoading || showFollowUpAlert || isPlayingAudio) {
+      return;
+    }
+
     if (timeLeft > 0) {
       const timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
@@ -93,46 +250,132 @@ const InterviewProgress = () => {
         setPhase('answering');
         setTimeLeft(totalAnswerTime); // 남은 전체 시간으로 시작
       } else if (phase === 'answering') {
-        // 전체 답변 시간 종료 -> 면접 종료
-        navigate('/interview/feedback', { state: { questions: askedQuestions } });
+        // 전체 답변 시간 종료 -> 자동 제출
+        handleSubmit();
       }
     }
-  }, [timeLeft, phase, totalAnswerTime, askedQuestions]);
+  }, [timeLeft, phase, totalAnswerTime, askedQuestions, isLoading, showFollowUpAlert, isPlayingAudio]);
 
-  const handleSubmit = () => {
-    // 질문 저장소로 면접하는 경우 꼬리질문 없음
-    if (currentQuestionIndex < selectedQuestions.length - 1) {
-      // 로딩 후 다음 질문으로 이동
-      setIsLoading(true);
+  const handleSubmit = async () => {
+    // 녹화 중지 (답변 제출 버튼 클릭 시)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      console.log('🎥 답변 녹화 종료');
 
-      setTimeout(() => {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setPhase('reading');
-        setTimeLeft(READING_TIME);
-        setIsLoading(false);
-      }, 2500);
+      // 녹화 완료 후 처리
+      mediaRecorderRef.current.onstop = async () => {
+        // WebM Blob 생성
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+
+        if (isAIMode) {
+          // AI 모드: 비디오 업로드 후 다음 질문 받기
+          try {
+            setIsLoading(true);
+
+            const result = await uploadAnswer(sessionId, questionId, blob);
+
+            if (result.status === 'completed') {
+              // 면접 종료
+              navigate('/interview/feedback', {
+                state: {
+                  sessionId: sessionId,
+                  questions: askedQuestions,
+                  isAIMode: true
+                }
+              });
+            } else if (result.status === 'continue') {
+              // 다음 질문으로 이동
+              setCurrentQuestion(result.question);
+              setQuestionId(result.questionId);
+              setIsTailQuestion(result.isTailQuestion);
+              setRemainingSlots(result.remainingSlots);
+              setInterviewStatus(result.status);
+
+              // 질문 기록 추가
+              setAskedQuestions(prev => [...prev, {
+                question: result.question,
+                isFollowUp: result.isTailQuestion
+              }]);
+
+              // 꼬리질문이면 알림 표시
+              if (result.isTailQuestion) {
+                setShowFollowUpAlert(true);
+                setTimeout(() => {
+                  setShowFollowUpAlert(false);
+                  setIsLoading(false);
+                  // 알림 후 음성 재생
+                  playQuestionAudio(result.audioData).then(() => {
+                    // 음성 재생 완료 후 읽기 단계 시작
+                    setPhase('reading');
+                    setTimeLeft(READING_TIME);
+                  });
+                }, 2000);
+              } else {
+                setIsLoading(false);
+                // 일반 질문이면 바로 음성 재생
+                playQuestionAudio(result.audioData).then(() => {
+                  // 음성 재생 완료 후 읽기 단계 시작
+                  setPhase('reading');
+                  setTimeLeft(READING_TIME);
+                });
+              }
+            }
+          } catch (error) {
+            console.error('❌ 답변 업로드 실패:', error);
+            alert('답변 업로드에 실패했습니다. 다시 시도해주세요.');
+            setIsLoading(false);
+          }
+        } else {
+          // 일반 모드 (질문 저장소): 기존 로직
+          if (currentQuestionIndex < selectedQuestions.length - 1) {
+            setIsLoading(true);
+
+            setTimeout(() => {
+              setCurrentQuestionIndex(currentQuestionIndex + 1);
+              setPhase('reading');
+              setTimeLeft(READING_TIME);
+              setIsLoading(false);
+            }, 2500);
+          } else {
+            // 모든 질문 완료
+            navigate('/interview/feedback', { state: { questions: askedQuestions } });
+          }
+        }
+      };
     } else {
-      // 모든 질문 완료 - 피드백 페이지로
-      navigate('/interview/feedback', { state: { questions: askedQuestions } });
+      console.warn('❌ 녹화가 진행 중이지 않습니다. 답변 시간이 시작되지 않았을 수 있습니다.');
+      alert('답변 시간이 시작되지 않았습니다.');
     }
   };
 
-  // 현재 질문 (선택한 질문들 사용)
-  const currentQuestion = selectedQuestions[currentQuestionIndex] || '질문이 없습니다.';
+  // 현재 질문 표시 (AI 모드 vs 일반 모드)
+  const displayQuestion = isAIMode
+    ? currentQuestion
+    : (selectedQuestions[currentQuestionIndex] || '질문이 없습니다.');
 
-  // 질문이 바뀔 때마다 askedQuestions에 추가 (중복 방지)
+  // 일반 모드: 질문이 바뀔 때마다 askedQuestions에 추가 (중복 방지)
   useEffect(() => {
-    if (currentQuestion && currentQuestion !== '질문이 없습니다.') {
+    if (!isAIMode && displayQuestion && displayQuestion !== '질문이 없습니다.') {
       setAskedQuestions(prev => {
         // 이미 존재하는 질문인지 확인
-        const alreadyExists = prev.some(item => item.question === currentQuestion);
+        const alreadyExists = prev.some(item => item.question === displayQuestion);
         if (alreadyExists) {
           return prev;
         }
-        return [...prev, { question: currentQuestion, isFollowUp: false }];
+        return [...prev, { question: displayQuestion, isFollowUp: false }];
       });
     }
-  }, [currentQuestion]);
+  }, [displayQuestion, isAIMode]);
+
+  // AI 모드: 첫 질문을 askedQuestions에 추가
+  useEffect(() => {
+    if (isAIMode && currentQuestion && askedQuestions.length === 0) {
+      setAskedQuestions([{
+        question: currentQuestion,
+        isFollowUp: isTailQuestion
+      }]);
+    }
+  }, [isAIMode, currentQuestion, isTailQuestion]);
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
@@ -172,8 +415,16 @@ const InterviewProgress = () => {
               )}
             </InterviewerScreen>
             <QuestionBox>
-              <QuestionText>{currentQuestion}</QuestionText>
+              <QuestionText>{displayQuestion}</QuestionText>
+              {isPlayingAudio && (
+                <AudioPlayingIndicator>🔊 질문 음성 재생 중...</AudioPlayingIndicator>
+              )}
               <QuestionHint>천천히 또박또박 답변해 주세요!</QuestionHint>
+              {isAIMode && remainingSlots !== null && (
+                <RemainingQuestionsInfo>
+                  남은 질문 슬롯: {remainingSlots}개
+                </RemainingQuestionsInfo>
+              )}
             </QuestionBox>
           </InterviewerSection>
 
@@ -274,16 +525,39 @@ const QuestionBox = styled.div`
 `;
 
 const QuestionText = styled.h2`
-  font-size: ${({ theme }) => theme.fonts.size['2xl']};
-  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  font-size: ${({ theme }) => theme.fonts.size.xl};
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
   color: white;
   margin-bottom: ${({ theme }) => theme.spacing.sm};
-  line-height: 1.4;
+  line-height: 1.5;
 `;
 
 const QuestionHint = styled.p`
   font-size: ${({ theme }) => theme.fonts.size.sm};
   color: ${({ theme }) => theme.colors.gray[400]};
+`;
+
+const RemainingQuestionsInfo = styled.p`
+  font-size: ${({ theme }) => theme.fonts.size.xs};
+  color: ${({ theme }) => theme.colors.gray[500]};
+  margin-top: ${({ theme }) => theme.spacing.sm};
+`;
+
+const AudioPlayingIndicator = styled.p`
+  font-size: ${({ theme }) => theme.fonts.size.sm};
+  color: #9B8FF5;
+  margin: ${({ theme }) => theme.spacing.sm} 0;
+  font-weight: ${({ theme }) => theme.fonts.weight.semibold};
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
 `;
 
 const UserSection = styled.div`

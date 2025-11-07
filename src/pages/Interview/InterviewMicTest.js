@@ -18,6 +18,8 @@ const InterviewMicTest = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedQuestions = location.state?.selectedQuestions || [];
+  const isAIMode = location.state?.isAIMode || false;
+  const sessionData = location.state?.sessionData || null;
   const videoRef = useRef(null);
   const [stream, setStream] = useState(null);
   const [interviewerType, setInterviewerType] = useState('calm');
@@ -126,9 +128,13 @@ const InterviewMicTest = () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
-      // 면접 준비 화면으로 이동 (선택한 질문들 전달)
+      // 면접 준비 화면으로 이동 (AI 모드 정보 전달)
       navigate('/interview/ready', {
-        state: { selectedQuestions }
+        state: {
+          selectedQuestions,
+          isAIMode,
+          sessionData
+        }
       });
     }
   };

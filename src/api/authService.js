@@ -12,13 +12,33 @@ import apiClient from './axios';
  */
 export const login = async (userId, password) => {
   try {
+    console.log('🚀 [API Request] POST /user/login');
+    console.log('📝 Request Body:', { userId, password: '****' });
+
     const response = await apiClient.post('/user/login', {
       userId: userId,
       password: password,
     });
+
+    console.log('✅ [API Response] Login successful');
+    console.log('📦 Response Data:', {
+      ...response.data,
+      accessToken: response.data.accessToken ? '****' : undefined,
+      refreshToken: response.data.refreshToken ? '****' : undefined
+    });
+    console.log('📊 Status Code:', response.status);
+
     return response.data;
   } catch (error) {
-    console.error('Failed to login:', error);
+    console.error('❌ [API Error] Failed to login');
+    console.error('📋 Error Details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
     throw error;
   }
 };
@@ -87,10 +107,25 @@ export const logout = async () => {
  */
 export const getUserProfile = async () => {
   try {
+    console.log('🚀 [API Request] GET /user');
+
     const response = await apiClient.get('/user');
+
+    console.log('✅ [API Response] User profile retrieved successfully');
+    console.log('📦 Response Data:', response.data);
+    console.log('📊 Status Code:', response.status);
+
     return response.data;
   } catch (error) {
-    console.error('Failed to get user profile:', error);
+    console.error('❌ [API Error] Failed to get user profile');
+    console.error('📋 Error Details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
     throw error;
   }
 };

@@ -96,14 +96,6 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route
-              path="/interview/feedback/:questionId"
-              element={
-                <PrivateRoute>
-                  <QuestionDetailFeedback />
-                </PrivateRoute>
-              }
-            />
 
             {/* Other Routes */}
             {/* 이용권은 로그인 없이도 접근 가능 */}
@@ -131,6 +123,22 @@ function App() {
               element={
                 <PrivateRoute>
                   <MyLog />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-log/:sessionId"
+              element={
+                <PrivateRoute>
+                  <InterviewFeedback />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-log/:sessionId/question/:inqId"
+              element={
+                <PrivateRoute>
+                  <QuestionDetailFeedback />
                 </PrivateRoute>
               }
             />

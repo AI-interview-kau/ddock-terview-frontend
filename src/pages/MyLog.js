@@ -72,7 +72,7 @@ const MyLog = () => {
 
   const handleHistoryClick = (sessionId) => {
     // 특정 면접 기록 클릭 시 피드백 페이지로 이동
-    navigate(`/interview/feedback/${sessionId}`);
+    navigate(`/my-log/${sessionId}`);
   };
 
   if (loading) {
@@ -85,11 +85,21 @@ const MyLog = () => {
     );
   }
 
-  // API 응답이 없으면 더미 데이터 사용
-  const growthData = myLogData?.growthReport || GROWTH_DATA;
+  // API 응답 데이터 변환
+  const transformGrowthData = (growthReport) => {
+    if (!growthReport || !growthReport.labels || !growthReport.scores) {
+      return GROWTH_DATA;
+    }
+    return growthReport.labels.map((label, index) => ({
+      session: label,
+      score: growthReport.scores[index] || 0,
+    }));
+  };
+
+  const growthData = transformGrowthData(myLogData?.growthReport);
   const skillData = myLogData?.latestSkillReport || SKILL_DATA;
   const behaviorData = myLogData?.latestBehaviorReport || BEHAVIOR_DATA;
-  const interviewHistory = myLogData?.interviewHistory || INTERVIEW_HISTORY;
+  const interviewHistory = myLogData?.sessions || INTERVIEW_HISTORY;
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
@@ -188,11 +198,13 @@ const MyLog = () => {
             {interviewHistory.map((item, index) => (
               <HistoryItem
                 key={item.sessionId || index}
-                onClick={() => handleHistoryClick(item.sessionId)}
-                $clickable={true}
+                onClick={() => item.sessionId && handleHistoryClick(item.sessionId)}
+                $clickable={!!item.sessionId}
               >
-                <HistoryDate>{item.date}</HistoryDate>
-                <HistoryScore>{item.score}점</HistoryScore>
+                <HistoryDate>
+                  {item.date ? new Date(item.date).toLocaleString('ko-KR') : item.date}
+                </HistoryDate>
+                <HistoryScore>{item.totalScore || item.score}점</HistoryScore>
               </HistoryItem>
             ))}
             </HistoryList>

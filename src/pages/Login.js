@@ -37,19 +37,37 @@ const Login = () => {
       // API 호출
       const response = await loginAPI(formData.email, formData.password);
 
-      // 응답: { grante, accessToken, refresh }
+      // 응답: { grantType, accessToken, refreshToken }
       if (response.accessToken) {
-        // 토큰 저장
+        // 토큰을 먼저 저장 (사용자 정보 조회를 위해)
         const userData = {
           token: response.accessToken,
-          refreshToken: response.refresh,
-          email: formData.email,
+          refreshToken: response.refreshToken,
+          userId: formData.email,
         };
 
         localStorage.setItem('user', JSON.stringify(userData));
 
-        // AuthContext에 로그인 상태 저장
-        login(userData);
+        // 사용자 정보 조회
+        try {
+          const { getUserProfile } = await import('../api/authService');
+          const userProfile = await getUserProfile();
+
+          // 사용자 정보 업데이트
+          const updatedUserData = {
+            ...userData,
+            name: userProfile.name || formData.email,
+            department: userProfile.depart,
+            status: userProfile.status,
+          };
+
+          localStorage.setItem('user', JSON.stringify(updatedUserData));
+          login(updatedUserData);
+        } catch (profileError) {
+          console.error('Failed to get user profile:', profileError);
+          // 프로필 조회 실패해도 로그인은 성공
+          login(userData);
+        }
 
         navigate('/'); // 로그인 성공 시 메인 페이지로
       }
@@ -302,6 +320,7 @@ const KakaoIconWrapper = styled.div`
   svg {
     width: 56px !important;
     height: 56px !important;
+    opacity: 0.3;
   }
 `;
 
@@ -314,6 +333,7 @@ const GoogleIconWrapper = styled.div`
     width: 56px !important;
     height: 56px !important;
     transform: scale(1.5) translate(0.5px, 1.5px);
+    opacity: 0.3;
   }
 `;
 
@@ -326,6 +346,7 @@ const AppleIconWrapper = styled.div`
     width: 56px !important;
     height: 56px !important;
     transform: scale(1.5) translate(0.5px, 1.5px);
+    opacity: 0.3;
   }
 `;
 

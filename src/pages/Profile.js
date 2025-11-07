@@ -21,7 +21,10 @@ const JOB_CATEGORIES = [
   '간호', '상담', '보험', '금융'
 ];
 
-const STATUS_OPTIONS = ['실무자', '학생', '무직'];
+const STATUS_OPTIONS = [
+  { label: '학생', value: 'STUDENT' },
+  { label: '취업 준비중', value: 'PREPARING' }
+];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -44,7 +47,7 @@ const Profile = () => {
         setFormData({
           name: profile.name || '',
           depart: profile.depart || '',
-          status: profile.status || '',
+          status: profile.status || '', // 이미 STUDENT, WORKER 등의 enum 값
         });
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
@@ -160,21 +163,15 @@ const Profile = () => {
 
             <FormGroup>
               <Label>현재 상태:</Label>
-              <Input
-                type="text"
-                value={formData.status}
-                readOnly
-                placeholder="현재 상태를 선택해주세요"
-              />
               <StatusButtonGroup>
-                {STATUS_OPTIONS.map((status) => (
+                {STATUS_OPTIONS.map((statusOption) => (
                   <StatusButton
-                    key={status}
+                    key={statusOption.value}
                     type="button"
-                    $active={formData.status === status}
-                    onClick={() => handleStatusClick(status)}
+                    $active={formData.status === statusOption.value}
+                    onClick={() => handleStatusClick(statusOption.value)}
                   >
-                    {status}
+                    {statusOption.label}
                   </StatusButton>
                 ))}
               </StatusButtonGroup>

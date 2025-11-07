@@ -1,53 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
+import { getQuestionFeedback } from '../../api/interviewService';
 
 const QuestionDetailFeedback = () => {
   const navigate = useNavigate();
-  const { questionId } = useParams();
+  const { sessionId, inqId } = useParams();
   const [feedbackMode, setFeedbackMode] = useState('language'); // 'language' or 'behavior'
+  const [feedbackData, setFeedbackData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const questionText = '가장 힘들었던 순간이 무엇이었나요?';
+  useEffect(() => {
+    const fetchQuestionFeedback = async () => {
+      if (!sessionId || !inqId) {
+        setLoading(false);
+        return;
+      }
 
+      try {
+        const data = await getQuestionFeedback(sessionId, inqId);
+        setFeedbackData(data);
+      } catch (error) {
+        console.error('Failed to fetch question feedback:', error);
+        alert('질문별 피드백을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestionFeedback();
+  }, [sessionId, inqId]);
+
+  const questionText = feedbackData?.content || '가장 힘들었던 순간이 무엇이었나요?';
+  const s3Key = feedbackData?.s3key;
+  const languageFeedbackText = feedbackData?.langfeedback || '생성된 언어 피드백이 없습니다.';
+  const behaviorFeedbackText = feedbackData?.behavefeedback || '생성된 행동 피드백이 없습니다.';
+
+  // 피드백 텍스트를 배열 형식으로 변환
   const languageFeedback = [
     {
-      title: '핵심은 간결하게 말해주세요!',
-      content:
-        '불필요한 이야기가 많으면 면접관이 중요한 내용을 놓칠 수 있어요. 취약점바가 힘들다고 하셨는데 어떤 면에 대한지 너무 짧았어요.',
-    },
-    {
-      title: '관련 없는 이야기를 생략해주세요!',
-      content:
-        'L사 이야기는 주제와 연관이 적어서 집중력을 떨어뜨릴 수 있어요. 필요한 내용만 전달해 보세요.',
-    },
-    {
-      title: '에피소드는 짧고 간결하게!',
-      content:
-        '지나치게 길거나 추첨한 동행이면 에피소드는 줄여주세요. 청중이 흥...',
+      title: '언어적 피드백',
+      content: languageFeedbackText,
     },
   ];
 
   const behaviorFeedback = [
     {
-      title: '시선 처리가 자연스럽지 않아요',
-      content:
-        '면접관을 바라보는 시선이 불안정해 보였어요. 자연스럽게 면접관의 눈을 바라보세요.',
-    },
-    {
-      title: '자세를 바르게 유지하세요',
-      content:
-        '등을 펴고 바른 자세로 면접에 임하는 것이 좋습니다.',
-    },
-    {
-      title: '제스처를 적절히 활용하세요',
-      content:
-        '손동작을 활용하면 답변이 더 설득력 있게 전달됩니다.',
+      title: '행동적 피드백',
+      content: behaviorFeedbackText,
     },
   ];
 
   const currentFeedback = feedbackMode === 'language' ? languageFeedback : behaviorFeedback;
+
+  if (loading) {
+    return (
+      <Layout>
+        <Container>
+          <div>로딩 중...</div>
+        </Container>
+      </Layout>
+    );
+  }
 
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
@@ -98,7 +114,7 @@ const QuestionDetailFeedback = () => {
           <ButtonWrapper>
             <ConfirmButton
               size="large"
-              onClick={() => navigate('/interview/feedback')}
+              onClick={() => navigate(`/my-log/${sessionId}`)}
             >
               확인
             </ConfirmButton>
