@@ -73,16 +73,24 @@ const InterviewFeedback = () => {
     con: '일부 질문에서 예시가 부족해 구체성이 떨어졌습니다. 말의 속도가 조금 빠른 청중이 내용을 따라가기 어려웠을 수 있습니다.',
   };
 
-  // 백엔드 응답: questions가 문자열 배열로 옴
+  // 백엔드 응답: questions가 객체 배열로 옴
   const rawQuestions = feedbackData?.questions || MOCK_QUESTIONS_DEFAULT;
 
-  // 문자열 배열을 객체 배열로 변환 (inqId는 index 사용)
+  // 질문 배열 처리
   const questions = Array.isArray(rawQuestions)
-    ? rawQuestions.map((q, index) =>
-        typeof q === 'string'
-          ? { inqId: index + 1, content: q, isFollowUp: false }
-          : q
-      )
+    ? rawQuestions.map((q, index) => {
+        if (typeof q === 'string') {
+          // 문자열인 경우 (더미 데이터 호환)
+          return { inqId: index + 1, content: q, isFollowUp: false };
+        } else {
+          // 객체인 경우 - 백엔드 응답
+          return {
+            inqId: q.inqId || q.inq_id,
+            content: q.question || q.content,
+            isFollowUp: q.isTailQ || q.isFollowUp || false
+          };
+        }
+      })
     : [];
 
   return (

@@ -18,6 +18,7 @@ const InterviewCameraTest = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedQuestions = location.state?.selectedQuestions || [];
+  const questionItems = location.state?.questionItems || [];  // inq_id 포함된 데이터
   const isAIMode = location.state?.isAIMode || false;
   const sessionData = location.state?.sessionData || null;
   const videoRef = useRef(null);
@@ -82,6 +83,7 @@ const InterviewCameraTest = () => {
       navigate('/interview/mic-test', {
         state: {
           selectedQuestions,
+          questionItems,  // inq_id 포함된 데이터 전달
           isAIMode,
           sessionData
         }

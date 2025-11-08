@@ -11,6 +11,7 @@ import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
 import confettiGif from '../../images/폭죽.gif';
 import ddocksTail from '../../assets/icons/ddocks_tail.png';
 import { startInterview, uploadAnswer, getInterviewStatus, playAudioFromBase64 } from '../../api/aiInterviewService';
+import { saveAnswer } from '../../api/interviewService';
 
 const FOLLOW_UP_QUESTIONS = {
   0: '그 강점을 실제로 활용했던 경험이 있나요?',
@@ -25,6 +26,7 @@ const InterviewProgress = () => {
   // AI 면접 모드 체크 (기본값: false - 질문 저장소 모드)
   const isAIMode = location.state?.isAIMode || false;
   const selectedQuestions = location.state?.selectedQuestions || [];
+  const questionItems = location.state?.questionItems || [];  // inq_id 포함된 데이터
 
   // AI 면접 상태
   const [sessionId, setSessionId] = useState(null);
@@ -326,19 +328,44 @@ const InterviewProgress = () => {
             setIsLoading(false);
           }
         } else {
-          // 일반 모드 (질문 저장소): 기존 로직
-          if (currentQuestionIndex < selectedQuestions.length - 1) {
+          // 일반 모드 (질문 저장소): 답변 저장 후 다음 질문으로 이동
+          try {
             setIsLoading(true);
 
-            setTimeout(() => {
-              setCurrentQuestionIndex(currentQuestionIndex + 1);
-              setPhase('reading');
-              setTimeLeft(READING_TIME);
+            // 현재 질문의 inq_id 가져오기
+            const currentQuestionItem = questionItems[currentQuestionIndex];
+            if (currentQuestionItem && currentQuestionItem.inq_id) {
+              // STT로 변환된 답변이 있다면 저장 (현재는 녹화만 하므로 빈 문자열로 저장)
+              // TODO: STT 기능 구현 시 실제 텍스트 답변으로 변경
+              await saveAnswer(currentQuestionItem.inq_id, "");
+              console.log(`답변 저장 완료 - inq_id: ${currentQuestionItem.inq_id}`);
+            }
+
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+              setTimeout(() => {
+                setCurrentQuestionIndex(currentQuestionIndex + 1);
+                setPhase('reading');
+                setTimeLeft(READING_TIME);
+                setIsLoading(false);
+              }, 2500);
+            } else {
+              // 모든 질문 완료
               setIsLoading(false);
-            }, 2500);
-          } else {
-            // 모든 질문 완료
-            navigate('/interview/feedback', { state: { questions: askedQuestions } });
+              navigate('/interview/feedback', { state: { questions: askedQuestions } });
+            }
+          } catch (error) {
+            console.error('❌ 답변 저장 실패:', error);
+            setIsLoading(false);
+            // 에러가 발생해도 다음 질문으로 진행
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+              setTimeout(() => {
+                setCurrentQuestionIndex(currentQuestionIndex + 1);
+                setPhase('reading');
+                setTimeLeft(READING_TIME);
+              }, 2500);
+            } else {
+              navigate('/interview/feedback', { state: { questions: askedQuestions } });
+            }
           }
         }
       };
