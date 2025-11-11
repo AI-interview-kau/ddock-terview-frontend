@@ -321,7 +321,7 @@ const InterviewPrepare = () => {
                       지원자의 논리적 허점과 대처 능력을 날카롭게 파고드는 압박 면접관이 배정되었어요.
                     </AssignmentInfoText>
                     <AssignmentInfoHighlight>
-                      총 <Strong>{questionCount}개</Strong>의 질문으로 면접 연습을 시작합니다.
+                      총 <Strong>5~15개</Strong>의 질문으로 면접 연습을 시작합니다.
                     </AssignmentInfoHighlight>
                     <AssignmentInfoText>
                       면접 연습은 약 <Strong>30분</Strong> 정도 소요될 예정이에요.
