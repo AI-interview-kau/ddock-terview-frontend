@@ -458,7 +458,7 @@ const InterviewProgress = () => {
           {/* 우측 - 사용자 화면 */}
           <UserSection>
             <UserScreen>
-              <VideoArea ref={videoRef} autoPlay playsInline />
+              <VideoArea ref={videoRef} autoPlay playsInline muted />
             </UserScreen>
             <ControlsBottom>
               <TimerSection>
