@@ -75,6 +75,10 @@ const Login = () => {
       console.error('Login failed:', error);
       if (error.response?.status === 404) {
         setError('사용자를 찾을 수 없습니다.');
+      } else if (error.response?.status === 502) {
+        setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      } else if (!error.response) {
+        setError('네트워크 연결을 확인해주세요.');
       } else {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
       }
