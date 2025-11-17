@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
 import iconInterview from '../../assets/icons/icon_interview.png';
@@ -8,6 +8,7 @@ import calmInterviewer from '../../assets/icons/온화형 면접관.png';
 import pressureInterviewer from '../../assets/icons/압박형 면접관.png';
 import dryInterviewer from '../../assets/icons/건조형 면접관.png';
 import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
+import loadingIcon from '../../assets/icons/loading.png';
 import confettiGif from '../../images/폭죽.gif';
 import ddocksTail from '../../assets/icons/ddocks_tail.png';
 import { startInterview, uploadAnswer, getInterviewStatus, playAudioFromBase64 } from '../../api/aiInterviewService';
@@ -407,14 +408,15 @@ const InterviewProgress = () => {
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
       <Container>
+        {/* 로딩 모달 */}
         {isLoading && (
-          <LoadingOverlay>
-            <LoadingContent>
-              <LoadingSpinner />
-              <LoadingText>다음 질문을 생성 중이에요...</LoadingText>
-              <LoadingSubText>잠시만 기다려 주세요</LoadingSubText>
-            </LoadingContent>
-          </LoadingOverlay>
+          <Modal>
+            <ModalOverlay />
+            <ModalContent>
+              <LoadingText>질문 생성중 ... 잠시만 기다려주세요 !</LoadingText>
+              <LoadingIcon src={loadingIcon} alt="로딩중" />
+            </ModalContent>
+          </Modal>
         )}
 
         {showFollowUpAlert && (
@@ -699,50 +701,48 @@ const ExitButton = styled.button`
   }
 `;
 
-const LoadingOverlay = styled.div`
+const Modal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  z-index: ${({ theme }) => theme.zIndex.modal};
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 `;
 
-const LoadingContent = styled.div`
+const ModalOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+`;
+
+const ModalContent = styled.div`
+  position: relative;
+  background-color: white;
+  border-radius: ${({ theme }) => theme.borderRadius['2xl']};
+  padding: ${({ theme }) => theme.spacing['4xl']};
+  max-width: 900px;
+  width: 90%;
+  min-height: 550px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: ${({ theme }) => theme.spacing.xl};
-`;
-
-const LoadingSpinner = styled.div`
-  width: 60px;
-  height: 60px;
-  border: 4px solid rgba(139, 122, 184, 0.3);
-  border-top-color: #8B7AB8;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
+  box-shadow: ${({ theme }) => theme.shadows.xl};
 `;
 
 const LoadingText = styled.div`
   font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: white;
-`;
-
-const LoadingSubText = styled.div`
-  font-size: ${({ theme }) => theme.fonts.size.base};
-  color: ${({ theme }) => theme.colors.gray[400]};
+  color: black;
 `;
 
 const FollowUpOverlay = styled.div`
@@ -758,6 +758,7 @@ const FollowUpOverlay = styled.div`
   z-index: 1000;
 `;
 
+
 const FollowUpModal = styled.div`
   background-color: rgba(44, 36, 64, 0.95);
   border-radius: ${({ theme }) => theme.borderRadius['3xl']};
@@ -770,6 +771,21 @@ const FollowUpModal = styled.div`
   box-shadow: ${({ theme }) => theme.shadows['2xl']};
   border: 2px solid rgba(255, 255, 255, 0.1);
   position: relative;
+`;
+
+const bounceAnimation = keyframes`
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+`;
+
+const LoadingIcon = styled.img`
+  width: 180px;
+  height: 180px;
+  animation: ${bounceAnimation} 1.5s infinite;
 `;
 
 const ConfettiImageCenter = styled.img`
