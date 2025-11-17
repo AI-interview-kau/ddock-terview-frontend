@@ -62,20 +62,34 @@ const MyDocuments = () => {
     }
   };
 
-  const confirmUpload = () => {
+  const confirmUpload = async () => {
     setShowUploadModal(false);
 
-    const newDocument = {
-      id: Date.now(),
-      name: uploadedFile.name,
-      uploadDate: new Date().toLocaleDateString('ko-KR'),
-      fileUrl: URL.createObjectURL(uploadedFile), // 파일에 대한 임시 URL 생성
-    };
-    setDocuments(prevDocs => [...prevDocs, newDocument]);
+    try {
+      // 파일을 Base64로 인코딩하여 저장 (파일 데이터 유지)
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newDocument = {
+          id: Date.now(),
+          name: uploadedFile.name,
+          uploadDate: new Date().toLocaleDateString('ko-KR'),
+          fileUrl: URL.createObjectURL(uploadedFile), // 다운로드용 임시 URL
+          fileData: e.target.result, // Base64 인코딩된 파일 데이터
+          fileType: uploadedFile.type,
+        };
+        setDocuments(prevDocs => [...prevDocs, newDocument]);
 
-    // 업로드 후 상태 초기화
-    setUploadedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = null;
+        // 업로드 후 상태 초기화
+        setUploadedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = null;
+      };
+      reader.readAsDataURL(uploadedFile);
+    } catch (error) {
+      console.error('Failed to save file:', error);
+      alert('파일 저장에 실패했습니다.');
+      setUploadedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = null;
+    }
   };
 
   const handleDocumentClick = (e, doc) => { 
@@ -279,7 +293,6 @@ const UploadBox = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: ${({ theme }) => theme.spacing.sm};
   background-color: #7c6fee; /* 보라색 */
   padding: ${({ theme }) => theme.spacing['3xl']} ${({ theme }) => theme.spacing['2xl']};
   border-radius: ${({ theme }) => theme.borderRadius.lg};

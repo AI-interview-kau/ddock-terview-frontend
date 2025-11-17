@@ -1,15 +1,10 @@
 /**
- * AI 질문 생성 서버 API
- * Base URL: https://ddockterview-api-299282571203.us-central1.run.app
+ * AI 질문 생성 서버 API V2
+ * Base URL: https://ddockterview-api-v2-299282571203.us-central1.run.app
  */
 
-// 임시: 직접 호출로 프록시 문제 확인
-// 개발 환경: 프록시 사용 (/ai-api)
-// 프로덕션: 실제 서버 URL 사용
-const AI_API_BASE_URL = 'https://ddockterview-api-299282571203.us-central1.run.app'; // 임시로 직접 호출
-// const AI_API_BASE_URL = process.env.NODE_ENV === 'development'
-//   ? '/ai-api'
-//   : 'https://ddockterview-api-299282571203.us-central1.run.app';
+// AI API Server V2 URL
+const AI_API_BASE_URL = 'https://ddockterview-api-v2-299282571203.us-central1.run.app';
 
 /**
  * AI 서버 헬스 체크
@@ -32,6 +27,7 @@ export const checkAIHealth = async () => {
 /**
  * 자기소개서 PDF 업로드 후 AI 질문 생성
  * @param {File} pdfFile - 자기소개서 PDF 파일
+ * @param {string} userId - 로그인된 사용자 ID (필수)
  * @returns {Promise} - sessionId 및 분석 결과
  * @returns {Object} result
  * @returns {string} result.status - 처리 상태 ("success")
@@ -40,12 +36,18 @@ export const checkAIHealth = async () => {
  * @returns {string} result.gcs_uri - GCS 저장 경로
  * @returns {string} result.timestamp - 업로드 시각
  */
-export const generateQuestionsFromResume = async (pdfFile) => {
+export const generateQuestionsFromResume = async (pdfFile, userId) => {
   try {
     console.log(`📤 자소서 업로드 시작`);
     console.log(`📄 파일명: ${pdfFile.name}`);
     console.log(`📦 파일 크기: ${(pdfFile.size / 1024).toFixed(1)}KB`);
     console.log(`🏷️  파일 타입: ${pdfFile.type}`);
+    console.log(`👤 사용자 ID: ${userId}`);
+
+    // userId 검증
+    if (!userId) {
+      throw new Error('사용자 ID가 필요합니다. 로그인 후 다시 시도해주세요.');
+    }
 
     // PDF 파일 검증 (더 엄격하게)
     if (!pdfFile.type || pdfFile.type !== 'application/pdf') {
@@ -59,11 +61,12 @@ export const generateQuestionsFromResume = async (pdfFile) => {
       throw new Error('파일 크기는 5MB 이하여야 합니다.');
     }
 
-    // FormData 생성 (서버가 요구하는 'resume_file' 키 사용)
+    // FormData 생성 (서버가 요구하는 'resume_file'과 'userId' 추가)
     const formData = new FormData();
     formData.append('resume_file', pdfFile, pdfFile.name); // 서버 요구사항: resume_file
+    formData.append('userId', userId); // 서버 요구사항: userId
 
-    console.log('📤 FormData 생성 완료 (키: resume_file), 서버로 전송 중...');
+    console.log('📤 FormData 생성 완료 (키: resume_file, userId), 서버로 전송 중...');
 
     const response = await fetch(`${AI_API_BASE_URL}/api/generate-questions`, {
       method: 'POST',

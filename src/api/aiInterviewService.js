@@ -1,17 +1,12 @@
 /**
- * AI 면접 진행 서버 API (Phase 2)
- * Base URL: https://ddockterview-api-299282571203.us-central1.run.app
+ * AI 면접 진행 서버 API V2 (Phase 2)
+ * Base URL: https://ddockterview-api-v2-299282571203.us-central1.run.app
  */
 
 import { playAudioFromBase64 } from '../utils/audioPlayer';
 
-// 임시: 직접 호출로 프록시 문제 확인
-// 개발 환경: 프록시 사용 (/ai-api)
-// 프로덕션: 실제 서버 URL 사용
-const AI_INTERVIEW_BASE_URL = 'https://ddockterview-api-299282571203.us-central1.run.app'; // 임시로 직접 호출
-// const AI_INTERVIEW_BASE_URL = process.env.NODE_ENV === 'development'
-//   ? '/ai-api'
-//   : 'https://ddockterview-api-299282571203.us-central1.run.app';
+// AI Interview API Server V2 URL
+const AI_INTERVIEW_BASE_URL = 'https://ddockterview-api-v2-299282571203.us-central1.run.app';
 
 /**
  * 면접 시작 - 첫 질문 받기
@@ -24,27 +19,44 @@ export const startInterview = async (sessionId) => {
       throw new Error('sessionId가 필요합니다. 먼저 자기소개서를 업로드해주세요.');
     }
 
-    const formData = new FormData();
-    formData.append('sessionId', sessionId);
+    console.log('📤 면접 시작 API 호출');
+    console.log('🆔 sessionId:', sessionId);
+    console.log('🔗 URL:', `${AI_INTERVIEW_BASE_URL}/api/interview/start`);
+
+    // application/x-www-form-urlencoded 형식으로 전송
+    const params = new URLSearchParams();
+    params.append('sessionId', sessionId);
+
+    console.log('📦 전송 데이터:', params.toString());
 
     const response = await fetch(`${AI_INTERVIEW_BASE_URL}/api/interview/start`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
     });
+
+    console.log('📥 응답 상태:', response.status);
+    console.log('📥 응답 헤더:', response.headers.get('content-type'));
 
     if (!response.ok) {
       let errorData;
       const contentType = response.headers.get('content-type');
 
+      console.log('⚠️ 에러 응답 Content-Type:', contentType);
+
       if (contentType && contentType.includes('application/json')) {
         errorData = await response.json();
+        console.log('📄 에러 JSON 데이터:', errorData);
       } else {
         const errorText = await response.text();
+        console.log('📄 에러 텍스트 데이터:', errorText);
         errorData = { message: errorText };
       }
 
       console.error('❌ 면접 시작 실패:', errorData);
-      throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(errorData.message || errorData.error || errorData.detail || `HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();

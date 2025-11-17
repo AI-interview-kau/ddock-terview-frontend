@@ -8,9 +8,11 @@ import starIcon from '../../assets/icons/Star (2).png';
 import ddocks2 from '../../assets/icons/ddocks2.png';
 import { createInterviewSession } from '../../api/interviewService';
 import { generateQuestionsFromResume } from '../../api/questionGenerationService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const InterviewPrepare = () => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // 사용자 정보 가져오기
   const DOCUMENTS_STORAGE_KEY = 'ddock_my_documents';
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSavedDocsModal, setShowSavedDocsModal] = useState(false);
@@ -46,6 +48,13 @@ const InterviewPrepare = () => {
       return;
     }
 
+    // 사용자 ID 확인
+    if (!user?.userId) {
+      alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+      navigate('/login');
+      return;
+    }
+
     setIsUploading(true);
     setShowUploadModal(false);
     setIsLoading(true);
@@ -53,10 +62,10 @@ const InterviewPrepare = () => {
     try {
       let aiGeneratedQuestions = [];
 
-      // AI 서버로 PDF 전송하여 질문 생성
+      // AI 서버로 PDF 전송하여 질문 생성 (userId 포함)
       try {
         console.log('📤 Uploading PDF to AI server for question generation...');
-        const aiResponse = await generateQuestionsFromResume(uploadedFile);
+        const aiResponse = await generateQuestionsFromResume(uploadedFile, user.userId);
         console.log('✅ AI generated questions:', aiResponse);
 
         // AI 생성 질문 개수 저장
@@ -120,15 +129,66 @@ const InterviewPrepare = () => {
 
   const handleDocumentSelect = async (doc) => {
     setShowSavedDocsModal(false);
+
+    // 파일 데이터가 없으면 안내
+    if (!doc.fileData) {
+      alert('저장된 파일 데이터를 찾을 수 없습니다.\n\n"새 자소서 업로드" 버튼을 눌러 파일을 다시 업로드해주세요.');
+      return;
+    }
+
+    // 사용자 ID 확인
+    if (!user?.userId) {
+      alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+      navigate('/login');
+      return;
+    }
+
+    // 중복 업로드 방지
+    if (isUploading) {
+      console.warn('⚠️ 이미 업로드 중입니다.');
+      return;
+    }
+
+    setIsUploading(true);
     setUploadedFile({ name: doc.name });
     setIsLoading(true);
 
-    // 저장된 자소서의 경우 AI 질문 생성 없이 바로 진행
-    // (이미 질문이 생성되어 있다고 가정)
-    setTimeout(() => {
+    try {
+      // Base64 데이터를 File 객체로 변환
+      const base64Data = doc.fileData;
+      const response = await fetch(base64Data);
+      const blob = await response.blob();
+      const file = new File([blob], doc.name, { type: doc.fileType || 'application/pdf' });
+
+      // AI 서버로 PDF 전송하여 질문 생성
+      try {
+        console.log('📤 Uploading saved PDF to AI server...');
+        const aiResponse = await generateQuestionsFromResume(file, user.userId);
+        console.log('✅ AI generated questions:', aiResponse);
+
+        // AI 생성 질문 개수 저장
+        setQuestionCount(aiResponse.question_count || 3);
+      } catch (aiError) {
+        console.warn('⚠️ AI 질문 생성 실패:', aiError.message);
+        setQuestionCount(3);
+        alert('질문 생성에 실패했습니다. 다시 시도해주세요.');
+        setIsLoading(false);
+        setIsUploading(false);
+        return;
+      }
+
+      // 면접관 배정 단계로 전환
+      setTimeout(() => {
+        setIsLoading(false);
+        setIsUploading(false);
+        setAssignmentStage(1);
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Failed to process saved resume:', error);
       setIsLoading(false);
-      setAssignmentStage(1);
-    }, 1000);
+      setIsUploading(false);
+      alert('저장된 자소서 처리에 실패했습니다. 다시 시도해주세요.\n에러: ' + error.message);
+    }
   };
 
   const handleStartWithoutDoc = async () => {
@@ -321,7 +381,7 @@ const InterviewPrepare = () => {
                       지원자의 논리적 허점과 대처 능력을 날카롭게 파고드는 압박 면접관이 배정되었어요.
                     </AssignmentInfoText>
                     <AssignmentInfoHighlight>
-                      총 <Strong>5~15개</Strong>의 질문으로 면접 연습을 시작합니다.
+                      총 <Strong>10~12개</Strong>의 질문으로 면접 연습을 시작합니다.
                     </AssignmentInfoHighlight>
                     <AssignmentInfoText>
                       면접 연습은 약 <Strong>30분</Strong> 정도 소요될 예정이에요.
