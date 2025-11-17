@@ -159,9 +159,24 @@ const QuestionSelection = () => {
   };
 
   const handleStartInterviewProgress = () => {
-    // 선택한 질문들을 camera-test로 전달
+    // 선택한 질문들과 inq_id를 camera-test로 전달
+    const currentSession = localStorage.getItem('currentSession');
+    let questionItems = [];
+
+    if (currentSession) {
+      try {
+        const sessionData = JSON.parse(currentSession);
+        questionItems = sessionData.items || [];
+      } catch (e) {
+        console.error('Failed to parse session data:', e);
+      }
+    }
+
     navigate('/interview/camera-test', {
-      state: { selectedQuestions: selectedQuestionsForInterview }
+      state: {
+        selectedQuestions: selectedQuestionsForInterview,
+        questionItems: questionItems  // inq_id 포함된 전체 데이터 전달
+      }
     });
   };
 

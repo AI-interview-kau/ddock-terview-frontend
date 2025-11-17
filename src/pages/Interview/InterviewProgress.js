@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
 import iconInterview from '../../assets/icons/icon_interview.png';
@@ -8,9 +8,11 @@ import calmInterviewer from '../../assets/icons/온화형 면접관.png';
 import pressureInterviewer from '../../assets/icons/압박형 면접관.png';
 import dryInterviewer from '../../assets/icons/건조형 면접관.png';
 import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
+import loadingIcon from '../../assets/icons/loading.png';
 import confettiGif from '../../images/폭죽.gif';
 import ddocksTail from '../../assets/icons/ddocks_tail.png';
 import { startInterview, uploadAnswer, getInterviewStatus, playAudioFromBase64 } from '../../api/aiInterviewService';
+import { saveAnswer } from '../../api/interviewService';
 
 const FOLLOW_UP_QUESTIONS = {
   0: '그 강점을 실제로 활용했던 경험이 있나요?',
@@ -25,6 +27,7 @@ const InterviewProgress = () => {
   // AI 면접 모드 체크 (기본값: false - 질문 저장소 모드)
   const isAIMode = location.state?.isAIMode || false;
   const selectedQuestions = location.state?.selectedQuestions || [];
+  const questionItems = location.state?.questionItems || [];  // inq_id 포함된 데이터
 
   // AI 면접 상태
   const [sessionId, setSessionId] = useState(null);
@@ -33,6 +36,7 @@ const InterviewProgress = () => {
   const [isTailQuestion, setIsTailQuestion] = useState(false);
   const [remainingSlots, setRemainingSlots] = useState(null); // 서버에서 받은 값으로 설정됨
   const [interviewStatus, setInterviewStatus] = useState('continue'); // 'continue' | 'completed'
+  const [isLastQuestion, setIsLastQuestion] = useState(false); // 마지막 질문 여부
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [phase, setPhase] = useState('reading'); // 'reading', 'answering', 'loading'
@@ -64,34 +68,39 @@ const InterviewProgress = () => {
   const playQuestionAudio = async (audioData) => {
     if (!audioData) {
       console.log('⚠️ 음성 데이터 없음 (텍스트만 표시)');
-      return;
+      return Promise.resolve();
     }
 
-    try {
-      setIsPlayingAudio(true);
-      console.log('🔊 질문 음성 재생 시작...');
+    return new Promise(async (resolve, reject) => {
+      try {
+        setIsPlayingAudio(true);
+        console.log('🔊 질문 음성 재생 시작...');
 
-      const audio = await playAudioFromBase64(audioData);
-      currentAudioRef.current = audio;
+        const audio = await playAudioFromBase64(audioData);
+        currentAudioRef.current = audio;
 
-      // 음성 재생 완료 시
-      audio.onended = () => {
-        console.log('✅ 음성 재생 완료 - 카운트다운 시작');
+        // 음성 재생 완료 시
+        audio.onended = () => {
+          console.log('✅ 음성 재생 완료 - 카운트다운 시작');
+          setIsPlayingAudio(false);
+          currentAudioRef.current = null;
+          resolve();
+        };
+
+        // 음성 재생 에러 시
+        audio.onerror = () => {
+          console.warn('⚠️ 음성 재생 실패 - 텍스트만 표시하고 카운트다운 시작');
+          setIsPlayingAudio(false);
+          currentAudioRef.current = null;
+          resolve(); // 에러가 나도 계속 진행
+        };
+      } catch (error) {
+        console.error('❌ 음성 재생 에러:', error);
         setIsPlayingAudio(false);
         currentAudioRef.current = null;
-      };
-
-      // 음성 재생 에러 시
-      audio.onerror = () => {
-        console.warn('⚠️ 음성 재생 실패 - 텍스트만 표시하고 카운트다운 시작');
-        setIsPlayingAudio(false);
-        currentAudioRef.current = null;
-      };
-    } catch (error) {
-      console.error('❌ 음성 재생 에러:', error);
-      setIsPlayingAudio(false);
-      currentAudioRef.current = null;
-    }
+        resolve(); // 에러가 나도 계속 진행
+      }
+    });
   };
 
   // AI 면접 시작 (AI 모드일 경우)
@@ -118,6 +127,13 @@ const InterviewProgress = () => {
             }
           }
 
+          // sessionId 검증 - null이거나 undefined면 에러 발생
+          if (!sessionIdToUse) {
+            console.error('❌ sessionId가 없습니다. localStorage:', storedSessionData);
+            throw new Error('세션 정보를 찾을 수 없습니다. 자기소개서를 다시 업로드해주세요.');
+          }
+
+          console.log('✅ sessionId 확인 완료:', sessionIdToUse);
           const result = await startInterview(sessionIdToUse);
 
           // 면접 세션 정보 저장
@@ -127,6 +143,7 @@ const InterviewProgress = () => {
           setIsTailQuestion(result.isTailQuestion);
           setRemainingSlots(result.remainingSlots);
           setInterviewStatus(result.status);
+          setIsLastQuestion(result.isLastQuestion || false);
 
           setIsLoading(false);
 
@@ -136,15 +153,33 @@ const InterviewProgress = () => {
             setTimeout(() => {
               setShowFollowUpAlert(false);
               // 알림 후 음성 재생
-              playQuestionAudio(result.audioData);
+              playQuestionAudio(result.audioData).then(() => {
+                // 음성 재생 완료 후 읽기 단계 시작
+                setPhase('reading');
+                setTimeLeft(READING_TIME);
+              });
             }, 2000);
           } else {
             // 일반 질문이면 바로 음성 재생
-            playQuestionAudio(result.audioData);
+            playQuestionAudio(result.audioData).then(() => {
+              // 음성 재생 완료 후 읽기 단계 시작
+              setPhase('reading');
+              setTimeLeft(READING_TIME);
+            });
           }
         } catch (error) {
           console.error('❌ 면접 시작 실패:', error);
-          alert('면접을 시작할 수 없습니다. 다시 시도해주세요.');
+          setIsLoading(false);
+
+          // 에러 메시지를 더 명확하게 표시
+          if (error.message.includes('세션 정보를 찾을 수 없습니다')) {
+            alert('세션 정보를 찾을 수 없습니다.\n\n자기소개서 업로드 페이지로 돌아가서 다시 업로드해주세요.');
+          } else if (error.message.includes('500')) {
+            alert('서버에서 오류가 발생했습니다.\n\n가능한 원인:\n1. 자기소개서가 제대로 업로드되지 않았을 수 있습니다.\n2. AI 서버가 일시적으로 응답하지 않을 수 있습니다.\n\n자기소개서를 다시 업로드해주세요.');
+          } else {
+            alert(`면접을 시작할 수 없습니다.\n\n에러: ${error.message}\n\n다시 시도해주세요.`);
+          }
+
           isInterviewStartedRef.current = false; // 실패 시 플래그 리셋
           navigate('/interview');
         }
@@ -290,6 +325,7 @@ const InterviewProgress = () => {
               setIsTailQuestion(result.isTailQuestion);
               setRemainingSlots(result.remainingSlots);
               setInterviewStatus(result.status);
+              setIsLastQuestion(result.isLastQuestion || false);
 
               // 질문 기록 추가
               setAskedQuestions(prev => [...prev, {
@@ -326,19 +362,44 @@ const InterviewProgress = () => {
             setIsLoading(false);
           }
         } else {
-          // 일반 모드 (질문 저장소): 기존 로직
-          if (currentQuestionIndex < selectedQuestions.length - 1) {
+          // 일반 모드 (질문 저장소): 답변 저장 후 다음 질문으로 이동
+          try {
             setIsLoading(true);
 
-            setTimeout(() => {
-              setCurrentQuestionIndex(currentQuestionIndex + 1);
-              setPhase('reading');
-              setTimeLeft(READING_TIME);
+            // 현재 질문의 inq_id 가져오기
+            const currentQuestionItem = questionItems[currentQuestionIndex];
+            if (currentQuestionItem && currentQuestionItem.inq_id) {
+              // STT로 변환된 답변이 있다면 저장 (현재는 녹화만 하므로 빈 문자열로 저장)
+              // TODO: STT 기능 구현 시 실제 텍스트 답변으로 변경
+              await saveAnswer(currentQuestionItem.inq_id, "");
+              console.log(`답변 저장 완료 - inq_id: ${currentQuestionItem.inq_id}`);
+            }
+
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+              setTimeout(() => {
+                setCurrentQuestionIndex(currentQuestionIndex + 1);
+                setPhase('reading');
+                setTimeLeft(READING_TIME);
+                setIsLoading(false);
+              }, 2500);
+            } else {
+              // 모든 질문 완료
               setIsLoading(false);
-            }, 2500);
-          } else {
-            // 모든 질문 완료
-            navigate('/interview/feedback', { state: { questions: askedQuestions } });
+              navigate('/interview/feedback', { state: { questions: askedQuestions } });
+            }
+          } catch (error) {
+            console.error('❌ 답변 저장 실패:', error);
+            setIsLoading(false);
+            // 에러가 발생해도 다음 질문으로 진행
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+              setTimeout(() => {
+                setCurrentQuestionIndex(currentQuestionIndex + 1);
+                setPhase('reading');
+                setTimeLeft(READING_TIME);
+              }, 2500);
+            } else {
+              navigate('/interview/feedback', { state: { questions: askedQuestions } });
+            }
           }
         }
       };
@@ -380,14 +441,15 @@ const InterviewProgress = () => {
   return (
     <Layout isLoggedIn={true} userName="김똑쓰">
       <Container>
+        {/* 로딩 모달 */}
         {isLoading && (
-          <LoadingOverlay>
-            <LoadingContent>
-              <LoadingSpinner />
-              <LoadingText>다음 질문을 생성 중이에요...</LoadingText>
-              <LoadingSubText>잠시만 기다려 주세요</LoadingSubText>
-            </LoadingContent>
-          </LoadingOverlay>
+          <Modal>
+            <ModalOverlay />
+            <ModalContent>
+              <LoadingText>질문 생성중 ... 잠시만 기다려주세요 !</LoadingText>
+              <LoadingIcon src={loadingIcon} alt="로딩중" />
+            </ModalContent>
+          </Modal>
         )}
 
         {showFollowUpAlert && (
@@ -425,13 +487,16 @@ const InterviewProgress = () => {
                   남은 질문 슬롯: {remainingSlots}개
                 </RemainingQuestionsInfo>
               )}
+              {isAIMode && isLastQuestion && (
+                <LastQuestionBadge>🎯 마지막 질문입니다!</LastQuestionBadge>
+              )}
             </QuestionBox>
           </InterviewerSection>
 
           {/* 우측 - 사용자 화면 */}
           <UserSection>
             <UserScreen>
-              <VideoArea ref={videoRef} autoPlay playsInline />
+              <VideoArea ref={videoRef} autoPlay playsInline muted />
             </UserScreen>
             <ControlsBottom>
               <TimerSection>
@@ -492,17 +557,21 @@ const InterviewerSection = styled.div`
   padding: ${({ theme }) => theme.spacing.xl};
   border-radius: ${({ theme }) => theme.borderRadius['2xl']};
   box-shadow: ${({ theme }) => theme.shadows.xl};
+  height: 100%;
+  max-height: 85vh;
 `;
 
 const InterviewerScreen = styled.div`
   background: #1A1A1A;
   border-radius: ${({ theme }) => theme.borderRadius['2xl']};
   width: 100%;
-  aspect-ratio: 4/3;
+  aspect-ratio: 16/9;
+  max-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  flex-shrink: 0;
 `;
 
 const InterviewerCharacter = styled.div`
@@ -513,8 +582,8 @@ const InterviewerCharacter = styled.div`
   height: 100%;
 
   img {
-    width: 350px;
-    height: 350px;
+    width: 250px;
+    height: 250px;
     object-fit: contain;
   }
 `;
@@ -522,14 +591,44 @@ const InterviewerCharacter = styled.div`
 const QuestionBox = styled.div`
   width: 100%;
   text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  overflow-y: auto;
+  padding: ${({ theme }) => theme.spacing.lg};
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+
+  /* 스크롤바 스타일링 */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(155, 143, 245, 0.5);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(155, 143, 245, 0.7);
+  }
 `;
 
 const QuestionText = styled.h2`
-  font-size: ${({ theme }) => theme.fonts.size.xl};
+  font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.semibold};
   color: white;
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
-  line-height: 1.5;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  line-height: 1.6;
+  word-break: keep-all;
+  white-space: pre-wrap;
 `;
 
 const QuestionHint = styled.p`
@@ -672,50 +771,48 @@ const ExitButton = styled.button`
   }
 `;
 
-const LoadingOverlay = styled.div`
+const Modal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  z-index: ${({ theme }) => theme.zIndex.modal};
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 `;
 
-const LoadingContent = styled.div`
+const ModalOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+`;
+
+const ModalContent = styled.div`
+  position: relative;
+  background-color: white;
+  border-radius: ${({ theme }) => theme.borderRadius['2xl']};
+  padding: ${({ theme }) => theme.spacing['4xl']};
+  max-width: 900px;
+  width: 90%;
+  min-height: 550px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: ${({ theme }) => theme.spacing.xl};
-`;
-
-const LoadingSpinner = styled.div`
-  width: 60px;
-  height: 60px;
-  border: 4px solid rgba(139, 122, 184, 0.3);
-  border-top-color: #8B7AB8;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
+  box-shadow: ${({ theme }) => theme.shadows.xl};
 `;
 
 const LoadingText = styled.div`
   font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: white;
-`;
-
-const LoadingSubText = styled.div`
-  font-size: ${({ theme }) => theme.fonts.size.base};
-  color: ${({ theme }) => theme.colors.gray[400]};
+  color: black;
 `;
 
 const FollowUpOverlay = styled.div`
@@ -728,8 +825,9 @@ const FollowUpOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
 `;
+
 
 const FollowUpModal = styled.div`
   background-color: rgba(44, 36, 64, 0.95);
@@ -743,6 +841,21 @@ const FollowUpModal = styled.div`
   box-shadow: ${({ theme }) => theme.shadows['2xl']};
   border: 2px solid rgba(255, 255, 255, 0.1);
   position: relative;
+`;
+
+const bounceAnimation = keyframes`
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+`;
+
+const LoadingIcon = styled.img`
+  width: 180px;
+  height: 180px;
+  animation: ${bounceAnimation} 1.5s infinite;
 `;
 
 const ConfettiImageCenter = styled.img`
@@ -793,6 +906,28 @@ const FollowUpCharacter = styled.div`
     }
     50% {
       transform: translateY(-10px);
+    }
+  }
+`;
+
+const LastQuestionBadge = styled.div`
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1A1A1A;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  font-size: ${({ theme }) => theme.fonts.size.base};
+  font-weight: ${({ theme }) => theme.fonts.weight.bold};
+  text-align: center;
+  margin-top: ${({ theme }) => theme.spacing.md};
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
     }
   }
 `;
