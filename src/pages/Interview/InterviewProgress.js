@@ -5,8 +5,6 @@ import Layout from '../../components/common/Layout';
 import Button from '../../components/common/Button';
 import iconInterview from '../../assets/icons/icon_interview.png';
 import calmInterviewer from '../../assets/icons/온화형 면접관.png';
-import pressureInterviewer from '../../assets/icons/압박형 면접관.png';
-import dryInterviewer from '../../assets/icons/건조형 면접관.png';
 import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
 import loadingIcon from '../../assets/icons/loading.png';
 import confettiGif from '../../images/폭죽.gif';
@@ -60,8 +58,6 @@ const InterviewProgress = () => {
 
   const interviewerIcons = {
     calm: calmInterviewer,
-    pressure: pressureInterviewer,
-    dry: dryInterviewer,
   };
 
   // 음성 재생 함수
@@ -190,11 +186,9 @@ const InterviewProgress = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAIMode]);
 
-  // 랜덤 면접관 선택 및 카메라 초기화
+  // 면접관 선택 및 카메라 초기화
   useEffect(() => {
-    const types = ['calm', 'pressure', 'dry'];
-    const randomType = types[Math.floor(Math.random() * types.length)];
-    setInterviewerType(randomType);
+    setInterviewerType('calm');
 
     // 사용자 카메라 및 오디오 접근 (WebM 녹화용)
     const initCamera = async () => {

@@ -145,7 +145,7 @@ const MyLog = () => {
 
             <FeedbackText>
               면접 전반적으로 준비된 모습이 돋보였지만, 구체적인 사례와
-              자료스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
+              자연스러운 태도를 보완한다면 훨씬 더 매력적인 답변이 될 것입니다.
             </FeedbackText>
 
           <RadarChartsContainer>
