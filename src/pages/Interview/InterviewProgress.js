@@ -18,6 +18,17 @@ const FOLLOW_UP_QUESTIONS = {
   2: '그 상황을 어떻게 극복하셨나요?',
 };
 
+const LOADING_MESSAGES = [
+  "지금까지 준비한 만큼만 보여주면 충분합니다.",
+  "떨리는 건 자연스러운 현상이에요. 그 에너지를 열정으로 바꾸세요.",
+  "심호흡을 크게 한번 해보세요. 뇌에 산소가 공급됩니다.",
+  "질문이 이해되지 않았다면, 정중하게 다시 물어봐도 괜찮습니다.",
+  "답변이 생각나지 않을 땐, 잠시 시간을 달라고 요청해도 좋습니다.",
+  "면접관도 그냥 사람입니다.",
+  "단점을 말하랬다고 진짜 치명적인 단점을 말하면... 솔직함 점수만 100점 받습니다.",
+  "나를 뽑지 않는 회사는 회사의 손해지, 내 손해가 아닙니다."
+];
+
 const InterviewProgress = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,6 +58,7 @@ const InterviewProgress = () => {
   const [askedQuestions, setAskedQuestions] = useState([]); // 실제로 나온 질문들을 저장 (형식: { question: string, isFollowUp: boolean })
   const [isPlayingAudio, setIsPlayingAudio] = useState(false); // 음성 재생 중 여부
   const currentAudioRef = useRef(null); // 현재 재생 중인 Audio 객체
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0); // 로딩 메시지 인덱스
 
   // 비디오 녹화 관련
   const videoRef = useRef(null);
@@ -239,6 +251,20 @@ const InterviewProgress = () => {
       }
     };
   }, []);
+
+  // 로딩 메시지 순환
+  useEffect(() => {
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setCurrentMessageIndex((prevIndex) => (prevIndex + 1) % LOADING_MESSAGES.length);
+      }, 8000); // 8초마다 메시지 변경
+
+      return () => clearInterval(interval);
+    } else {
+      // 로딩이 끝나면 인덱스 리셋
+      setCurrentMessageIndex(0);
+    }
+  }, [isLoading]);
 
   // 비디오 녹화 시작 (답변 단계 진입 시 - 질문 확인 10초 후)
   useEffect(() => {
@@ -440,7 +466,9 @@ const InterviewProgress = () => {
           <Modal>
             <ModalOverlay />
             <ModalContent>
-              <LoadingText>질문 생성중 ... 잠시만 기다려주세요 !</LoadingText>
+              <LoadingText key={currentMessageIndex}>
+                {LOADING_MESSAGES[currentMessageIndex]}
+              </LoadingText>
               <LoadingIcon src={loadingIcon} alt="로딩중" />
             </ModalContent>
           </Modal>
@@ -791,22 +819,49 @@ const ModalContent = styled.div`
   background-color: white;
   border-radius: ${({ theme }) => theme.borderRadius['2xl']};
   padding: ${({ theme }) => theme.spacing['4xl']};
+  padding-top: 80px;
   max-width: 900px;
   width: 90%;
   min-height: 550px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   gap: ${({ theme }) => theme.spacing.xl};
   box-shadow: ${({ theme }) => theme.shadows.xl};
+`;
+
+const fadeInOut = keyframes`
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 `;
 
 const LoadingText = styled.div`
   font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
   color: black;
+  animation: ${fadeInOut} 8s ease-in-out;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.5;
 `;
 
 const FollowUpOverlay = styled.div`
@@ -850,6 +905,7 @@ const LoadingIcon = styled.img`
   width: 180px;
   height: 180px;
   animation: ${bounceAnimation} 1.5s infinite;
+  margin-top: 60px;
 `;
 
 const ConfettiImageCenter = styled.img`
