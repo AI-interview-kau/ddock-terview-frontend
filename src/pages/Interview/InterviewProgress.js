@@ -6,7 +6,7 @@ import Button from '../../components/common/Button';
 import iconInterview from '../../assets/icons/icon_interview.png';
 import calmInterviewer from '../../assets/icons/온화형 면접관.png';
 import { ReactComponent as Logo } from '../../assets/icons/logo.svg';
-import loadingIcon from '../../assets/icons/loading.png';
+import loadingVideo from '../../mp4/KakaoTalk_20251119_143807610.mp4';
 import confettiGif from '../../images/폭죽.gif';
 import ddocksTail from '../../assets/icons/ddocks_tail.png';
 import { startInterview, uploadAnswer, getInterviewStatus, playAudioFromBase64 } from '../../api/aiInterviewService';
@@ -466,10 +466,12 @@ const InterviewProgress = () => {
           <Modal>
             <ModalOverlay />
             <ModalContent>
+              <LoadingVideo autoPlay loop muted playsInline>
+                <source src={loadingVideo} type="video/mp4" />
+              </LoadingVideo>
               <LoadingText key={currentMessageIndex}>
                 {LOADING_MESSAGES[currentMessageIndex]}
               </LoadingText>
-              <LoadingIcon src={loadingIcon} alt="로딩중" />
             </ModalContent>
           </Modal>
         )}
@@ -816,20 +818,21 @@ const ModalOverlay = styled.div`
 
 const ModalContent = styled.div`
   position: relative;
-  background-color: white;
+  background-color: transparent;
   border-radius: ${({ theme }) => theme.borderRadius['2xl']};
   padding: ${({ theme }) => theme.spacing['4xl']};
-  padding-top: 80px;
-  max-width: 900px;
-  width: 90%;
-  min-height: 550px;
+  max-width: 1200px;
+  width: 95%;
+  min-height: 700px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  padding-bottom: 100px;
   text-align: center;
   gap: ${({ theme }) => theme.spacing.xl};
   box-shadow: ${({ theme }) => theme.shadows.xl};
+  overflow: hidden;
 `;
 
 const fadeInOut = keyframes`
@@ -854,7 +857,7 @@ const fadeInOut = keyframes`
 const LoadingText = styled.div`
   font-size: ${({ theme }) => theme.fonts.size['2xl']};
   font-weight: ${({ theme }) => theme.fonts.weight.bold};
-  color: black;
+  color: white;
   animation: ${fadeInOut} 8s ease-in-out;
   min-height: 80px;
   display: flex;
@@ -862,6 +865,9 @@ const LoadingText = styled.div`
   justify-content: center;
   text-align: center;
   line-height: 1.5;
+  position: relative;
+  z-index: 1;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
 const FollowUpOverlay = styled.div`
@@ -901,11 +907,15 @@ const bounceAnimation = keyframes`
   }
 `;
 
-const LoadingIcon = styled.img`
-  width: 180px;
-  height: 180px;
-  animation: ${bounceAnimation} 1.5s infinite;
-  margin-top: 60px;
+const LoadingVideo = styled.video`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: ${({ theme }) => theme.borderRadius['2xl']};
+  z-index: 0;
 `;
 
 const ConfettiImageCenter = styled.img`
