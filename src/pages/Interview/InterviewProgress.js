@@ -313,12 +313,31 @@ const InterviewProgress = () => {
 
   const handleSubmit = async () => {
     // 녹화 중지 (답변 제출 버튼 클릭 시)
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      console.log('🎥 답변 녹화 종료');
+    if (mediaRecorderRef.current) {
+      const recorderState = mediaRecorderRef.current.state;
+      console.log('🎥 현재 녹화 상태:', recorderState);
 
-      // 녹화 완료 후 처리
-      mediaRecorderRef.current.onstop = async () => {
+      if (recorderState === 'recording') {
+        mediaRecorderRef.current.stop();
+        console.log('🎥 답변 녹화 종료');
+      } else if (recorderState === 'inactive') {
+        console.warn('⚠️ 녹화가 아직 시작되지 않았거나 이미 종료되었습니다.');
+        alert('녹화가 진행 중이지 않습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      } else if (recorderState === 'paused') {
+        console.warn('⚠️ 녹화가 일시정지 상태입니다.');
+        mediaRecorderRef.current.resume();
+        mediaRecorderRef.current.stop();
+        console.log('🎥 답변 녹화 종료');
+      }
+    } else {
+      console.error('❌ MediaRecorder가 초기화되지 않았습니다.');
+      alert('녹화 장치를 찾을 수 없습니다.');
+      return;
+    }
+
+    // 녹화 완료 후 처리
+    mediaRecorderRef.current.onstop = async () => {
         // WebM Blob 생성
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
 
@@ -423,10 +442,6 @@ const InterviewProgress = () => {
           }
         }
       };
-    } else {
-      console.warn('❌ 녹화가 진행 중이지 않습니다. 답변 시간이 시작되지 않았을 수 있습니다.');
-      alert('답변 시간이 시작되지 않았습니다.');
-    }
   };
 
   // 현재 질문 표시 (AI 모드 vs 일반 모드)
@@ -506,14 +521,6 @@ const InterviewProgress = () => {
                 <AudioPlayingIndicator>🔊 질문 음성 재생 중...</AudioPlayingIndicator>
               )}
               <QuestionHint>천천히 또박또박 답변해 주세요!</QuestionHint>
-              {isAIMode && remainingSlots !== null && (
-                <RemainingQuestionsInfo>
-                  남은 질문 슬롯: {remainingSlots}개
-                </RemainingQuestionsInfo>
-              )}
-              {isAIMode && isLastQuestion && (
-                <LastQuestionBadge>🎯 마지막 질문입니다!</LastQuestionBadge>
-              )}
             </QuestionBox>
           </InterviewerSection>
 
