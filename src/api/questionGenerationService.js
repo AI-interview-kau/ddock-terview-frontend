@@ -1,10 +1,10 @@
 /**
  * AI 질문 생성 서버 API V2
- * Base URL: https://ddockterview-api-v2-299282571203.us-central1.run.app
+ * Base URL: process.env.REACT_APP_AI_SERVER_URL
  */
 
 // AI API Server V2 URL
-const AI_API_BASE_URL = 'https://ddockterview-api-v2-299282571203.us-central1.run.app';
+const AI_API_BASE_URL = process.env.REACT_APP_AI_SERVER_URL || 'https://ddockterview-api-v2-299282571203.asia-northeast1.run.app';
 
 /**
  * AI 서버 헬스 체크
