@@ -34,7 +34,7 @@ const QuestionDetailFeedback = () => {
   }, [sessionId, inqId]);
 
   const questionText = feedbackData?.content || '가장 힘들었던 순간이 무엇이었나요?';
-  const s3Key = feedbackData?.s3key;
+  const videoUrl = feedbackData?.videoUrl;
   const languageFeedbackText = feedbackData?.langfeedback || '생성된 언어 피드백이 없습니다.';
   const behaviorFeedbackText = feedbackData?.behavefeedback || '생성된 행동 피드백이 없습니다.';
 
