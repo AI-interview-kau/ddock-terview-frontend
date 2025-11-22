@@ -1,12 +1,12 @@
 /**
  * AI 면접 진행 서버 API V2 (Phase 2)
- * Base URL: https://ddockterview-api-v2-299282571203.us-central1.run.app
+ * Base URL: process.env.REACT_APP_AI_SERVER_URL
  */
 
 import { playAudioFromBase64 } from '../utils/audioPlayer';
 
 // AI Interview API Server V2 URL
-const AI_INTERVIEW_BASE_URL = 'https://ddockterview-api-v2-299282571203.us-central1.run.app';
+const AI_INTERVIEW_BASE_URL = process.env.REACT_APP_AI_SERVER_URL || 'https://ddockterview-api-v2-299282571203.asia-northeast1.run.app';
 
 /**
  * 면접 시작 - 첫 질문 받기
